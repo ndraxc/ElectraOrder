@@ -548,9 +548,9 @@
         
         .order-item-name {
             display: flex;
-            align-items: flex-start; /* Ubah ke flex-start agar sejajar atas */
+            align-items: center; /* Ubah dari flex-start ke center */
             flex-grow: 1;
-            gap: 8px; /* Beri jarak antara elemen */
+            gap: 0; /* Hapus gap atau kurangi */
         }
         .unit-display {
             font-size: 12px;
@@ -563,12 +563,12 @@
         .dark-mode .unit-display {
             color: #999;
         }
-        
         .item-number {
             min-width: 20px;
             text-align: right;
             color: #666;
-            flex-shrink: 0; /* Pastikan tidak menyusut */
+            flex-shrink: 0;
+            margin-right: 8px; /* Tambahkan margin kanan */
         }
                 
         .dark-mode .item-number {
@@ -576,11 +576,9 @@
         }
         .product-name-wrapper {
             flex-grow: 1;
-            word-break: break-word; /* Untuk handle text panjang */
+            word-break: break-word;
             padding-right: 10px;
-            text-align: left; /* Pastikan text rata kiri */
-            
-
+            text-align: left;
         }
 
         .unit-display {
@@ -1772,19 +1770,19 @@
                     const orderItem = document.createElement('div');
                     orderItem.className = 'order-item';
                     orderItem.innerHTML = `
-                 <div class="order-item-name">
-                    <span class="item-number">${itemNumber}.</span>
-                    <div class="product-name-wrapper">
-                        ${product.name}
-                    </div>
-                    <span class="unit-display">${unit}</span>
-                </div>
-                        <div class="order-item-control">
-                            <button class="quantity-btn minus" data-id="${productId}"><i class="fas fa-minus"></i></button>
-                            <input type="number" class="order-quantity-input" data-id="${productId}" value="${quantity}" min="0">
-                            <button class="quantity-btn plus" data-id="${productId}"><i class="fas fa-plus"></i></button>
-                        </div>
-                    `;
+    <div class="order-item-name">
+        <span class="item-number">${itemNumber}.</span>
+        <div class="product-name-wrapper">
+            ${product.name}
+        </div>
+        <span class="unit-display">${unit}</span>
+    </div>
+    <div class="order-item-control">
+        <button class="quantity-btn minus" data-id="${productId}"><i class="fas fa-minus"></i></button>
+        <input type="number" class="order-quantity-input" data-id="${productId}" value="${quantity}" min="0">
+        <button class="quantity-btn plus" data-id="${productId}"><i class="fas fa-plus"></i></button>
+    </div>
+`;
                     orderItemsContainer.appendChild(orderItem);
                     itemNumber++;
                 }
