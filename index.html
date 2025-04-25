@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <!-- Tambahkan script jsPDF di bagian head -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesen Barang Electra Kapal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif; /* Ubah ke Poppins */
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Style untuk satuan kustom */
+.unit-selector {
+    margin-left: 5px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 12px;
+}
+
+.dark-mode .unit-selector {
+    background-color: #333;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+.unit-control {
+    display: flex;
+    align-items: center;
+    min-width: 180px;
+    justify-content: flex-end;
+}
+
+.unit-display {
+    margin-left: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.dark-mode .unit-display {
+    color: #999;
+}
+        
+        .search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 101;
+    display: none;
+}
+
+.dark-mode .search-suggestions {
+    background: #1e1e1e;
+    border-color: #444;
+}
+
+.suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.dark-mode .suggestion-item {
+    border-bottom-color: #444;
+}
+
+.suggestion-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dark-mode .suggestion-item:hover {
+    background-color: #333;
+}
+
+.suggestion-highlight {
+    font-weight: bold;
+    color: #128C7E;
+}
+
+.dark-mode .suggestion-highlight {
+    color: #25D366;
+}
+        .favorite-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 18px;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: all 0.3s;
+}
+
+.favorite-btn.active {
+    color: #128C7E; /* Warna sama seperti tombol plus active */
+}
+
+.dark-mode .favorite-btn {
+    color: #666;
+}
+
+.dark-mode .favorite-btn.active {
+    color: #25D366; /* Warna hijau lebih terang di dark mode */
+}
+
+/* Efek hover untuk konsistensi */
+.favorite-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Tombol show favorites di toggle view */
+#show-favorites {
+    background: #f5f5f5;
+    color: #128C7E; /* Warna sama seperti tombol plus */
+    border: 1px solid #128C7E;
+}
+
+.dark-mode #show-favorites {
+    background: #1e1e1e;
+    color: #25D366;
+    border-color: #25D366;
+}
+
+#show-favorites.active {
+    background: #128C7E;
+    color: white;
+}
+
+.dark-mode #show-favorites.active {
+    background: #25D366;
+}
+
+#show-favorites:hover {
+    background: rgba(18, 140, 126, 0.1);
+}
+
+.dark-mode #show-favorites:hover {
+    background: rgba(37, 211, 102, 0.1);
+}
+        /* Style untuk tombol favorit di toggle view */
+.toggle-view {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    gap: 10px;
+    position: sticky;
+    top: 90px;
+    background: none !important;
+    padding: 10px 0;
+    z-index: 90;
+}
+
+.dark-mode .toggle-view {
+    background: #121212;
+}
+
+
+
+
+
+        
+        .print-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    font-size: 14px;
+    padding: 8px 15px;
+    border-radius: 20px;
+}
+
+.dark-mode .print-btn {
+    background: #c0392b;
+}
+
+.print-btn:hover {
+    background: #c0392b;
+}
+
+.dark-mode .print-btn:hover {
+    background: #e74c3c;
+}
+
+.print-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+        /* Dark mode overlay untuk animasi */
+        .dark-mode-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #2e2e2e;
+            z-index: 999;
+            clip-path: circle(0% at 50px 50px);
+            pointer-events: none;
+            transition: clip-path 0.8s ease-in-out;
+        }
+
+        body.dark-mode .dark-mode-overlay {
+            clip-path: circle(150% at 50px 50px);
+        }
+
+        /* Posisi toggle */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-size: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .dark-mode-toggle {
+            color: #e0e0e0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Untuk mobile */
+        @media (max-width: 600px) {
+            .dark-mode-toggle {
+                top: 15px;
+                left: 15px;
+                width: 36px;
+                height: 36px;
+                font-size: 15px;
+            }
+            
+            .dark-mode-overlay {
+                clip-path: circle(0% at 35px 35px);
+            }
+            
+            body.dark-mode .dark-mode-overlay {
+                clip-path: circle(150% at 35px 35px);
+            }
+        }
+        
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 100px;
+        }
+        
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        
+        h1 {
+            color: #128C7E;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .dark-mode h1 {
+            color: #25D366;
+        }
+        
+        .search-container {
+           /* position: sticky; */
+           top: auto;
+           z-index: 100;
+           background: #f5f5f5;
+           padding: 15px;
+           margin-bottom: 0;
+           display: flex;
+           align-items: center;
+        }
+        
+        .dark-mode .search-container {
+            background: #121212;
+        }
+        
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        
+        #search {
+            width: 100%;
+            padding: 10px 35px 10px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: white;
+        }
+        
+        .dark-mode #search {
+            background-color: #333;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        
+        .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 18px;
+            cursor: pointer;
+            display: none;
+        }
+        
+        .dark-mode .clear-search {
+            color: #777;
+        }
+        
+        .clear-search:hover {
+            color: #666;
+        }
+        
+        .dark-mode .clear-search:hover {
+            color: #999;
+        }
+        
+        .toggle-view {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            gap: 10px;
+            /* position: sticky; */
+              position: relative;
+            top: auto;
+            background: #f5f5f5;
+            padding: 10px 0;
+            z-index: 90;
+        }
+        
+        .dark-mode .toggle-view {
+            background: #121212;
+        }
+        
+        .toggle-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .toggle-btn.active {
+            background: #128C7E;
+        }
+        
+        .dark-mode .toggle-btn {
+            background: #1e8449;
+        }
+        
+        .dark-mode .toggle-btn.active {
+            background: #25D366;
+        }
+        
+        .products-container {
+            max-height: calc(100vh - 150px);
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 10px;
+            margin-top: -40px;
+        }
+        /* Style untuk produk pertama */
+.products-container > .product-card:first-child {
+    margin-top: -4px !important; /* Atur jarak dari atas */
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.dark-mode .products-container > .product-card:first-child {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+        
+        #products-view {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 10px 15px; /* Kurangi padding */
+                padding-bottom: 90px;
+            }
+            
+            .toggle-view {
+                top: 90px; /* Sesuaikan untuk mobile */
+            }
+            
+            h1 {
+                color: #128C7E;
+                text-align: center;
+                font-size: 28px;
+                margin-bottom: 5px;
+                margin-top: 0; /* Tambahkan ini untuk mengurangi margin atas judul */
+            }
+        }
+        
+      
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dark-mode .product-card {
+            background: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .product-name {
+            font-weight: bold;
+            color: #333;
+            flex-grow: 1;
+        }
+        
+        .dark-mode .product-name {
+            color: #e0e0e0;
+        }
+        
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            min-width: 140px;
+        }
+        
+        .quantity-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dark-mode .quantity-btn {
+            background: #1e8449;
+        }
+        
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            margin: 0 5px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .dark-mode .quantity-input {
+            background-color: #333;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        
+        .order-summary {
+            background: white;
+            top: 240px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: none;
+            position: relative;
+            min-height: calc(100vh - 250px);
+        }
+        
+        .dark-mode .order-summary {
+            background: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .order-items-container {
+            max-height: calc(100vh - 350px);
+            overflow-y: auto;
+            margin-bottom: 15px;
+            min-height: 100px;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .dark-mode .order-item {
+            border-bottom-color: #444;
+        }
+        
+        .order-item-name {
+            display: flex;
+            align-items: flex-start; /* Ubah ke flex-start agar sejajar atas */
+            flex-grow: 1;
+            gap: 8px; /* Beri jarak antara elemen */
+        }
+        .unit-display {
+            font-size: 12px;
+            color: #666;
+            margin-left: 5px;
+            min-width: 60px; /* Lebar minimum untuk satuan */
+            text-align: right; /* Rata kanan */
+        }
+
+        .dark-mode .unit-display {
+            color: #999;
+        }
+        
+        .item-number {
+            min-width: 20px;
+            text-align: right;
+            color: #666;
+            flex-shrink: 0; /* Pastikan tidak menyusut */
+        }
+                
+        .dark-mode .item-number {
+            color: #999;
+        }
+        .product-name-wrapper {
+            flex-grow: 1;
+            word-break: break-word; /* Untuk handle text panjang */
+            padding-right: 10px;
+            text-align: left; /* Pastikan text rata kiri */
+            
+
+        }
+
+        .unit-display {
+            font-size: 12px;
+            color: #666;
+            min-width: 40px; /* Lebar minimum untuk satuan */
+            text-align: right; /* Rata kanan */
+            flex-shrink: 0; /* Pastikan tidak menyusut */
+        }
+
+        .dark-mode .unit-display {
+            color: #999;
+        }
+
+        /* Untuk text panjang yang wrap */
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Sejajarkan ke atas */
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .dark-mode .order-item {
+            border-bottom-color: #444;
+        }
+        
+        .order-item-control {
+            display: flex;
+            align-items: center;
+            min-width: 120px;
+            justify-content: flex-end;
+        }
+        
+        .order-quantity-input {
+            width: 40px;
+            text-align: center;
+            margin: 0 5px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .dark-mode .order-quantity-input {
+            background-color: #333;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            gap: 10px;
+            position: absolute;
+            bottom: 20px;
+            left: 3px;
+            right: 3px;
+        }
+
+        .button-group button {
+            flex: 1;
+            font-size: 14px;
+            padding: 8px 15px; /* Sesuaikan dengan tombol toggle */
+            border-radius: 20px; /* Sesuaikan dengan tombol toggle */
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .reset-btn {
+            background: #128C7E;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 3px;
+        }
+        
+        .dark-mode .reset-btn {
+            background: #0d6e5f;
+        }
+        
+        .reset-btn:hover {
+            background: #25D366;
+        }
+        
+        .send-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .dark-mode .send-btn {
+            background: #1e8449;
+        }
+        
+        .send-btn:hover {
+            background: #128C7E;
+        }
+        
+        .whatsapp-icon {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .dark-mode .no-results {
+            background: #1e1e1e;
+            color: #999;
+        }
+        
+        .no-results.show {
+            display: block;
+        }
+        
+        .empty-order {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .dark-mode .empty-order {
+            color: #999;
+        }
+        
+        /* Modal Konfirmasi */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            top: 100px; 
+        }
+        
+        .dark-mode .modal-content {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .dark-mode .modal-title {
+            color: #e0e0e0;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .modal-btn-confirm {
+            background-color: #128C7E;
+            color: white;
+        }
+        
+        .dark-mode .modal-btn-confirm {
+            background-color: #0d6e5f;
+        }
+        
+        .modal-btn-cancel {
+            background-color: #25D366;
+            color: white;
+        }
+        
+        .dark-mode .modal-btn-cancel {
+            background-color: #1e8449;
+        }
+        
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: none;
+            border: none;
+            color: #333;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .dark-mode .dark-mode-toggle {
+            color: #e0e0e0;
+        }
+        
+        #products-view {
+                margin-top: -25px; /* Geser lebih kecil di mobile */
+            }
+        
+        /* Tampilan Mobile */
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+                padding-bottom: 90px;
+            }
+            
+            #products-view {
+                margin-top: -40px; /* Geser lebih kecil di mobile */
+            }
+            
+            .order-summary {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+                max-height: 190vh; /* Tinggi maksimum lebih besar */
+                height: auto; /* Biarkan tinggi menyesuaikan konten */
+                /* Tambahkan properti baru: */
+                top: 191px !important; /* Pastikan tidak ada top yang mengganggu */
+                transform: none;
+            }
+            
+            .dark-mode .order-summary {
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            }
+            
+            .order-items-container {
+                margin-bottom: 10px; /* Lebih besar untuk mobile */
+            }
+            
+            .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            gap: 10px;
+            position: absolute;
+            bottom: 45px;
+            left: 30px;
+            right: 30px;
+        }
+
+        .button-group button {
+            flex: 1;
+            font-size: 14px;
+            padding: 8px 15px; /* Sesuaikan dengan tombol toggle */
+            border-radius: 20px; /* Sesuaikan dengan tombol toggle */
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+            
+            .dark-mode-toggle {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                font-size: 20px;
+            }
+        }
+        .reset-btn i {
+    margin-right: 5px;
+    font-size: 16px; /* Sesuaikan dengan whatsapp-icon */
+}
+.whatsapp-icon {
+    margin-right: 8px;
+    font-size: 16px; /* Sedikit diperkecil agar sesuai */
+}
+        
+        .order-summary.show {
+            display: block;
+        }
+        
+        .order-items-container {
+            max-height: 50vh;
+        }
+        
+        .toggle-view {
+            top: auto;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            top: -30px; /* Atur nilai negatif untuk menggeser ke atas */
+            margin-top: 0; /* Pastikan margin-top 0 */
+        }
+
+        /* Gaya untuk header order summary dengan tombol salin */
+        .order-summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+             
+        .order-summary {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+                max-height: 190vh; /* Tinggi maksimum lebih besar */
+                height: auto; /* Biarkan tinggi menyesuaikan konten */
+                /* Tambahkan properti baru: */
+                top: 210px; /* Pastikan tidak ada top yang mengganggu */
+                transform: none;
+            }
+
+        .order-summary-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .copy-order-btn {
+            background: transparent;
+            border: none;
+            color: #128C7E;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .dark-mode .copy-order-btn {
+            color: #25D366;
+        }
+
+        .copy-order-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .dark-mode .copy-order-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Toast notification */
+        .toast {
+            text-align: center;
+            position: fixed;
+            bottom: 14%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 10px 7px;
+            border-radius: 30px;
+            z-index: 1100;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            width: 250px;
+            font-size: 13px;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .dark-mode .toast {
+            background-color: #cbcbcb;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" id="darkModeToggle">
+        <i class="fas fa-moon"></i>
+    </button>
+    
+    <h1>Mesen Barang</h1>
+    
+    <div class="search-wrapper">
+        <input type="text" id="search" placeholder="Alih produk..." autocomplete="off">
+        <button class="clear-search" id="clear-search"><i class="fas fa-times"></i></button>
+        <div class="search-suggestions" id="search-suggestions"></div>
+    </div>
+    
+    <div class="toggle-view">
+        <div class="toggle-view">
+            <button class="toggle-btn active" id="show-products"><i class="fas fa-box-open"></i> Produk</button>
+            <button class="toggle-btn" id="show-orders"><i class="fas fa-shopping-cart"></i> daftar barang (<span id="item-count">0</span>)</button>
+            <button class="toggle-btn" id="show-favorites"><i class="fas fa-bookmark"></i></button>
+        </div>
+    </div> 
+    
+    <div class="order-summary" id="order-summary">
+        <div class="order-summary-header">
+            <div class="order-summary-title">
+                <h3><i class="fas fa-list"></i> Data Barang Habis (<span id="order-item-count">0</span> item)</h3>
+            </div>
+            <button class="copy-order-btn" id="copy-order-btn" title="Salin list pesanan">
+                <i class="far fa-copy"></i>
+            </button>
+        </div>
+        
+        <div class="order-items-container" id="order-items">
+            <!-- Item pesanan akan ditambahkan di sini -->
+            <div class="empty-order">list pesanan ne konden mejangin geg :)</div>
+        </div>
+       
+        <div class="button-group">
+            <button class="reset-btn" id="reset-order">
+                <i class="fas fa-redo" style="margin-right: 5px;"></i> Ulangi
+            </button>
+            <button class="print-btn" id="print-order">
+                <i class="fas fa-file-pdf print-icon"></i> Cetak
+            </button>
+            <button class="send-btn" id="send-order">
+                <i class="fab fa-whatsapp whatsapp-icon"></i> Kirim 
+            </button>
+            
+        </div>
+       
+    </div>
+    <br>
+    <div id="products-view">
+        <div class="products-container" id="products-container">
+            <!-- Produk akan dimuat melalui JavaScript -->
+        </div>
+        
+        <div class="no-results" id="no-results">
+            <p>Produk ne mbok alih onden medata</p>
+            <p>antos malu nah :) </p>
+        </div>
+    </div>
+    
+    <!-- Modal Konfirmasi Reset -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-title"></i> Seken ngulang ngae mbok?</div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-confirm" id="confirmReset"><i class="fas fa-check"></i> ae!</button>
+                <button class="modal-btn modal-btn-cancel" id="cancelReset"><i class="fas fa-times"></i> sing</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast">List mesalain!</div>
+    <script>
+    // Daftar produk
+    const products = [
+    { id: 1, name: "Ezviz C6N 1080P" },
+    { id: 2, name: "Ezviz H6C Pro 2K+" },
+    { id: 3, name: "EZVIZ H8C 1080P" },
+    { id: 4, name: "EZVIZ H8C 2K 4MP" },
+    { id: 5, name: "EZVIZ H8C 2K 4G GSM" },
+    { id: 6, name: "EZVIZ H8C POE 2K" },
+    { id: 7, name: "EZVIZ H7C 2 Lens" },
+    { id: 8, name: "EZVIZ C1C-B" },
+    { id: 9, name: "Imou Cruiser SC IPC-K7CP 2K 3MP" },
+    { id: 10, name: "Imou Cruiser SC+ IPC-K7FP 5MP" },
+    { id: 11, name: "Imou Cruiser Dual 5+5MP IPC-S7XEP" },
+    { id: 12, name: "Imou Cruiser IPC-S21FA (POE)" },
+    { id: 13, name: "Imou Cell Go IPC Solar Panel" },
+    { id: 14, name: "DVR-204G-M1/T Hilook" },
+    { id: 15, name: "DVR-208G-M1 Hilook" },
+    { id: 16, name: "DVR 216G-M1" },
+    { id: 17, name: "DVR Hikvision iDS-7204HQHI-M1/XT" },
+    { id: 18, name: "DVR Hikvision DS-7208HQHI-M1/XT" },
+    { id: 19, name: "DVR Hikvision DS-7216HQHI-M1/XT" },
+    { id: 20, name: "DS-2CE76D0T-EXLPF Indoor 2MP Hikvision" },
+    { id: 21, name: "DS-2CE16D0T-EXLPF Outdoor 2MP Hikvision" },
+    { id: 22, name: "DS-2CE76K0T-EXLPF Indoor 3K Hikvision" },
+    { id: 23, name: "DS-2CE16K0T-EXLPF Outdoor 3K Hikvision" },
+    { id: 24, name: "DS-2CE16D0T-LPFS Outdoor 2MP+S Hikvision" },
+    { id: 25, name: "DS-2CE76D0T-LPFS Indoor 2MP+S Hikvision" },
+    { id: 26, name: "PSU Hikvision CCTV DS-2FA1225-D4" },
+    { id: 27, name: "PSU Hikvision CCTV DS-2FA1205-D8" },
+    { id: 28, name: "PSU Hi-View CCTV 16CH" },
+    { id: 29, name: "PSU Dahua DH-PFM344D-4CH" },
+    { id: 30, name: "PSU Dahua DH-PFM344D-8CH" },
+    { id: 31, name: "Dahua HAC-T1A21P Cooper Indoor" },
+    { id: 32, name: "Dahua HAC-B1A21P Cooper Outdoor" },
+    { id: 33, name: "Dahua XVR1B04 -I" },
+    { id: 34, name: "Dahua XVR1B04H Up to 5MP" },
+    { id: 35, name: "Dahua XVR1B08 -I" },
+    { id: 36, name: "Dahua XVR1B08H-I Up to 5MP" },
+    { id: 37, name: "Dahua XVR1B16-I" },
+    { id: 38, name: "Kabel RG59+2 Dahua 100m" },
+    { id: 39, name: "Kabel RG59+2 50m Globe" },
+    { id: 40, name: "Kabel RG59+2 Infinity 300m" },
+    { id: 41, name: "Kabel RG59+2 Vizpro 300m" },
+    { id: 42, name: "Kabel RG59+2 Robot White" },
+    { id: 43, name: "Kabel RG6 Matrix" },
+    { id: 44, name: "Kabel RG6 Dahua DH_PFM941 300m" },
+    { id: 45, name: "Kabel RG6+2 GLobe Cam 100m" },
+    { id: 46, name: "Kabel RG6+2 Infinity" },
+    { id: 47, name: "Kabel RG6+2 Sinovision Black 300m" },
+    { id: 48, name: "Kabel UTP/LAN Cat 6 Dahua DH-PFM9201-6UN Grey" },
+    { id: 49, name: "Kabel UTP/LAN Cat 6 Hikvision DS-1LN6U-W/CCA White" },
+    { id: 50, name: "Kabel UTP/LAN Cat 6 Belden Grey" },
+    { id: 51, name: "Conector RJ45 Belden Cat 6 (1 Pack 50 PCS)" },
+    { id: 52, name: "Conector RJ45 AMP Cat 6E (1 Pack 100 pcs)" },
+    { id: 53, name: "Conector RJ45 NYK Cat 6" },
+    { id: 54, name: "Conektor BNC Thunderin Taiwan" },
+    { id: 55, name: "Conektor BNC Drat" },
+    { id: 56, name: "Konektor I BNC Sambungan" },
+    { id: 57, name: "Jack DC Drat Male" },
+    { id: 58, name: "Jack DC Male Kabel" },
+    { id: 59, name: "Jack DC Drat Female" },
+    { id: 60, name: "Jack DC Female Kabel" },
+    { id: 61, name: "Isolasi Listrik 3M 1285 jr" },
+    { id: 62, name: "Kabel HDMI 1.5m Hitam" },
+    { id: 63, name: "PSU 12V 10A SPC SN-110" },
+    { id: 64, name: "PSU 12V 10A Techma" },
+    { id: 65, name: "PSU 12V 20A SPC SN-120" },
+    { id: 66, name: "PSU BOX 12V 20A" },
+    { id: 67, name: "Klem Supra 6mm" },
+    { id: 68, name: "Klem Supra 8mm" },
+    { id: 69, name: "Klem Supra 8mm Hitam" },
+    { id: 70, name: "Klem Supra 9mm" },
+    { id: 71, name: "Klem Supra 10mm" },
+    { id: 72, name: "Klem Supra 10mm Hitam" },
+    { id: 73, name: "Klem Supra 12mm" },
+    { id: 74, name: "Klem Supra 12mm Hitam" },
+    { id: 75, name: "Klem Supra 14mm" },
+    { id: 76, name: "Klem Supra 17mm" },
+    { id: 77, name: "Klem Supra 20mm" },
+    { id: 78, name: "Klem Supra 20mm Hitam" },
+    { id: 79, name: "Kabel Ties Masko 2.5x100 Putih" },
+    { id: 80, name: "Kabel Ties Masko 2.5x200 Hitam" },
+    { id: 81, name: "Kabel Ties Masko 2.5x200 Putih" },
+    { id: 82, name: "Kabel Ties Masko 3.6x300 Hitam" },
+    { id: 83, name: "Kabel Ties Masko 3.6x300 Putih" },
+    { id: 84, name: "THC-B120-PC Outdoor Hilook" },
+    { id: 85, name: "THC-T120-PC Indoor Hilook" },
+    { id: 86, name: "THC-T127-P Indoor Hilook Colorvu" },
+    { id: 87, name: "THC-B127-P Outdoor Hilook Colorvu" },
+    { id: 88, name: "THC-T120-PS Indoor+S" },
+    { id: 89, name: "THC-B120-PS Outdoor+S" },
+    { id: 90, name: "HDMI Spliter 1 To 4 AISEN" },
+    { id: 91, name: "HDMI Spliter 1 To 2 AISEN" },
+    { id: 92, name: "HDMI Extender AISEN Rj45 Up to 60m" },
+    { id: 93, name: "Kabel HDMI 20m Aisen 4K" },
+    { id: 94, name: "Kabel HDMI 15m Aisen 4K" },
+    { id: 95, name: "Kabel HDMI 1.5 Aisen 4K" },
+    { id: 96, name: "Kabel HDMI 30m 4K Aisen" },
+    { id: 97, name: "Kabel HDMI 1m Robot RFH01" },
+    { id: 98, name: "Kabel HDMI 2m Robot RFH02" },
+    { id: 99, name: "Kabel HDMI 3m Robot RFH03" },
+    { id: 100, name: "Kabel HDMI 5m Robot RFH05" },
+    { id: 101, name: "Kabel HDMI 10m Robot RFH10" },
+    { id: 102, name: "Adaptor 12V 2A Kualitas Super" },
+    { id: 103, name: "Adaptor 12V 5A Samsung" },
+    { id: 104, name: "Adaptor 12V 3A LG" },
+    { id: 105, name: "EZVIZ C8C 1080P" },
+    { id: 106, name: "EZVIZ C8C 4 MP" },
+    { id: 107, name: "EZVIZ C8W 2K 4MP" },
+    { id: 108, name: "EZVIZ CB1 Battery" },
+    { id: 109, name: "EZVIZ H1C" },
+    { id: 110, name: "EZVIZ EB8 4MP 4G Battery+ Solar panel" },
+    { id: 111, name: "EZVIZ H3C4MP" },
+    { id: 112, name: "EZVIZ H3C1080P Color" },
+    { id: 113, name: "EZVIZ H3C1080P IR" },
+    { id: 114, name: "EZVIZ H6 3K" },
+    { id: 116, name: "EZVIZ H80X 4K Auto Zoom Tracking" },
+    { id: 121, name: "EZVIZ CS-H8 PRO 5MP" },
+    { id: 122, name: "EZVIZ H9C Dual 2K" },
+    { id: 123, name: "EZVIZ HB8 4MP Battery" },
+    { id: 124, name: "EZVIZ TY1 1080P" },
+    { id: 125, name: "EZVIZ TY1 2K 4MP" },
+    { id: 126, name: "EZVIZ Smart Lock DL05" },
+    { id: 127, name: "EZVIZ NVR CS-X5S-4W 4 Chanel" },
+    { id: 128, name: "EZVIZ NVR CS-X5S-8W 8 Chanel" },
+    { id: 129, name: "EZVIZ R5C Home Storage" },
+    { id: 130, name: "Ezviz Solar Panel" },
+    { id: 131, name: "Bracket CCTV Ezviz OEM" },
+    { id: 132, name: "Bracket CCTV Ezviz (Wallmount)" },
+    { id: 133, name: "Imou Ranger A1 IPC-K2E1P 2K" },
+    { id: 134, name: "Imou Bullet 2E IPC-K3DP 3MP" },
+    { id: 135, name: "Imou Cue 2C IPC-C22CP" },
+    { id: 136, name: "Imou Ranger Dual 3+3MP IPC-S2XP" },
+    { id: 137, name: "Mercusys MS105G 5 Port Gigabit Switch" },
+    { id: 138, name: "Mercusys MS108G 8 Port Gigabit Switch" },
+    { id: 139, name: "TP-LINK Switch  TL-SF1005D" },
+    { id: 140, name: "TP-LINK Switch  TL-SF1008D" },
+    { id: 141, name: "POE Switch DS-3E0106P-E/M" },
+    { id: 142, name: "POE Switch DS-3E0310 P-E/M" },
+    { id: 143, name: "TP-LINK Range Extender  TL-WA850RE" },
+    { id: 144, name: "TP-LINK Range Extender  TL-WA855RE" },
+    { id: 145, name: "TP-LINK Switch  TL-SG1005D" },
+    { id: 146, name: "TP-LINK switch  TL-SG1008D" },
+    { id: 147, name: "NS-0105P-35 POE HUB 5 Hilook" },
+    { id: 148, name: "NS-0109P-60(B)  POE HUB 9 Hilook" },
+    { id: 149, name: "Home router 4G Advance V1 Pro" },
+    { id: 150, name: "Tenda N301 Wireless N300" },
+    { id: 151, name: "Tenda  F3 4 in 1 Router" },
+    { id: 152, name: "Tenda O1 Outdoor CPE" },
+    { id: 153, name: "Tenda O3 Outdoor CPE" },
+    { id: 154, name: "Tenda O6 Outdoor CPE" },
+    { id: 155, name: "Ruijie RG-EW1200G Pro Dual Band Wireless Router" },
+    { id: 156, name: "Ruijie RG-EW1200 Dual Band Wireless Router" },
+    { id: 157, name: "Ruijie RG-EW1300G Dual Band Gigabit Wireles Router" },
+    { id: 158, name: "Ruijie RG-RAP1200(F) Wall Plate AP" },
+    { id: 159, name: "Ruijie RG-RAP2200(E) Ceiling AP" },
+    { id: 160, name: "Ruijie RG-RAP2200(F) Ceiling AP" },
+    { id: 161, name: "Ruijie RG-RAP52-OD" },
+    { id: 162, name: "Ruijie RG-E120 POE Adapter" },
+    { id: 163, name: "Ruijie RG-ES05G-L 5 Port Gigabit" },
+    { id: 164, name: "Ruijie RG-ES08G-L 8 Port Gigabit" },
+    { id: 165, name: "Ruijie RG-ES116G-L 16 Port Gigabit Metal" },
+    { id: 166, name: "Ruijie RG-ES205GC-P" },
+    { id: 167, name: "Ruijie RG-ES209GC-P" },
+    { id: 168, name: "Ruijie  RG-ES218GC-P" },
+    { id: 169, name: "Ruijie  RG-ES220GS-P" },
+    { id: 170, name: "Ruijie  RG-ES226GC-P" },
+    { id: 171, name: "Ruijie RG-EW3000GX Pro" },
+    { id: 172, name: "Keyboard +Mouse Robot KM3100" },
+    { id: 173, name: "Keyboard+Mouse Robot KM3000" },
+    { id: 174, name: "Keyboard +Mouse Robot KM4000" },
+    { id: 175, name: "Keyboard+Mouse Robot KM3500" },
+    { id: 176, name: "Mouse USB Robot M102" },
+    { id: 177, name: "Hi-view Memory 64GB Class 10" },
+    { id: 178, name: "ROBOT Micro SD 64GB RT64G" },
+    { id: 179, name: "Sandisk Ultra 64GB 100 Mbps" },
+    { id: 180, name: "Xiaohua Memory 64GB Class 10 (By Dahua)" },
+    { id: 181, name: "Olike Memory 128GB Class 10" },
+    { id: 182, name: "Sandisk Ultra 128GB 100 Mbps" },
+    { id: 183, name: "ROBOT Micro SD 32GB RT32G" },
+    { id: 184, name: "Sandisk Ultra 32GB 100 Mbps" },
+    { id: 185, name: "Precon FO 1 Core 50m Standar Telkom" },
+    { id: 186, name: "Precon FO 1 Core 100m Standar Telkom" },
+    { id: 187, name: "Precon FO 1 Core 150m Standar Telkom" },
+    { id: 188, name: "Precon FO 1 Core  80m Standar Telkom" },
+    { id: 189, name: "Precon FO 1 Core  250m Standar Telkom" },
+    { id: 190, name: "Precon FO 1 core 3 seling Fotec/Micore 200m" },
+    { id: 191, name: "Precon FO 1 core 3 seling Netline 200m" },
+    { id: 192, name: "Precon FO 1 core 3 seling Netline 50m" },
+    { id: 193, name: "Precon FO 1 core 3 seling  60m" },
+    { id: 194, name: "Precon FO 1 core 3 seling  75m" },
+    { id: 195, name: "Precon FO 1 core 3 seling Netline 80m" },
+    { id: 196, name: "Precon FO 1 Core  400m Standar Telkom" },
+    { id: 197, name: "Kabel NYMHY 2x0.75 Rubytech Hitam" },
+    { id: 198, name: "Kabel NYMHY 2x0.75 Rubytech" },
+    { id: 199, name: "Kabel  NYMHY Kenjiro 2x0.75 Putih" },
+    { id: 200, name: "Kabel  NYMHY Kenjiro 2x0.75 Hitam" },
+    { id: 201, name: "Kabel NYM 2x1.5 Rubytech" },
+    { id: 202, name: "Kabel  NYMHY  Kenjiro 2x1.5 Putih" },
+    { id: 203, name: "Kabel  NYMHY  Kenjiro 2x1.5 Hitam" },
+    { id: 204, name: "Kabel  NYM 2x1.5 Extrana" },
+    { id: 205, name: "Kabel  NYM 2x2.5 Extrana" },
+    { id: 206, name: "Kabel NYM 2x2.5 Rubytech" },
+    { id: 207, name: "Kabel NYM 3x1.5 Rubytech" },
+    { id: 208, name: "Kabel  NYY 3x1.5 Extrana Hitam" },
+    { id: 209, name: "Kabel  NYM 3x1.5 Extrana" },
+    { id: 210, name: "Kabel NYM 3x2.5 Rubytech" },
+    { id: 211, name: "Kabel  NYM 3x2.5 Extrana" },
+    { id: 212, name: "HARDDISK EXTERNAL SEAGATE EXPANSION 1TB" },
+    { id: 213, name: "HDD 1TB Seagate Expantion Basic" },
+    { id: 214, name: "HDD 6TB Hikvision" },
+    { id: 215, name: "HDD 8TB Hikvision" },
+    { id: 216, name: "HDD 2TB Toshiba Surveillance S300" },
+    { id: 217, name: "HDD 4TB Toshiba Surveillance S300" },
+    { id: 218, name: "HDD 1TB Toshiba Surveillance S300" },
+    { id: 219, name: "HDD 10TB Seagate Skyhawk Garansi Resmi" },
+    { id: 220, name: "HDD 2TB Hikvision" },
+    { id: 221, name: "HDD 2TB Seagate Shyhawk MFI" },
+    { id: 222, name: "HDD 2TB Seagate Shyhawk Garansi Resmi" },
+    { id: 223, name: "HDD 4TB Seagate Shyhawk Garansi Resmi" },
+    { id: 224, name: "HDD 4TB Hikvision" },
+    { id: 225, name: "HDD 4TB Seagate Shyhawk MFI" },
+    { id: 226, name: "HDD 6TB Seagate Baracuda MFI" },
+    { id: 227, name: "HDD 6TB Seagate Shyhawk MFI" },
+    { id: 228, name: "HDD 6TB Seagate Shyhawk Garansi Resmi" },
+    { id: 229, name: "HDD 8TB Seagate Baracuda MFI" },
+    { id: 230, name: "HDD 8TB Seagate EXOS Enterprise" },
+    { id: 231, name: "HDD 8TB Seagate Skyhawk MFI" },
+    { id: 232, name: "HDD 8TB Seagate Skyhawk 1 th" },
+    { id: 233, name: "HDD 8TB Seagate Skyhawk Garansi Resmi" },
+    { id: 234, name: "HDD 1TB Seagate Skyhawh Garansi Resmi" },
+    { id: 235, name: "HDD 1TB Seagate Baracuda" },
+    { id: 236, name: "HDD 1TB Seagate Skyhawh MFI" },
+    { id: 237, name: "HDD 1TB Seagate Skyhawk 1Th" },
+    { id: 238, name: "HDD 2TB Seagate 1Th" },
+    { id: 239, name: "HDD 2TB Seagate Skyhawk 1Th" },
+    { id: 240, name: "HDD 4TB Seagate 1TH" },
+    { id: 241, name: "HDD 4TB Seagate Skyhawk 1TH" },
+    { id: 242, name: "HDD 5TB Seagate 1TH" },
+    { id: 243, name: "HDD 1TB WD Green Power 1Th" },
+    { id: 244, name: "HDD 1TB WD Purple Surveillance 1th" },
+    { id: 245, name: "HDD 1TB WD Purple Surveillance Garansi Resmi" },
+    { id: 246, name: "HDD 2TB PC WD Blue" },
+    { id: 247, name: "HDD 2TB WD Purple Surveillance 1Th" },
+    { id: 248, name: "HDD 2TB WD Purple Surveillance Garansi Resmi" },
+    { id: 249, name: "HDD 4TB WD Purple Surveillance Garansi Resmi" },
+    { id: 250, name: "HDD 4TB WD Purple Surveillance 1 Tahun" },
+    { id: 251, name: "HDD 500 GB WD Blue" },
+    { id: 252, name: "HDD 500 GB WD Green Power" },
+    { id: 253, name: "HDD 6TB WD Purple Surveillance Garansi Resmi" },
+    { id: 254, name: "HDD 8TB WD Purple Garansi Resmi" },
+    { id: 255, name: "HDD External WD Elements 1TB" },
+    { id: 256, name: "Case HDD Enclosure 2,5 DF USB 3.0/3.1" },
+    { id: 257, name: "Case HDD 2.5\" MAXTECH Transparant" },
+    { id: 258, name: "Case HDD 2,5 Maxtek Enclosure USB3.0 Black" },
+    { id: 259, name: "Case HDD 2,5 ORICO TRSP" },
+    { id: 260, name: "Case HDD 2,5 Vivan TRSP" },
+    { id: 261, name: "Case HDD 3.5 ORICO TRSP" },
+    { id: 262, name: "Case HDD 2,5 ORICO Enclosure 2577U3" },
+    { id: 263, name: "Case HDD 2,5 ORICO Enclosure 2020U3" },
+    { id: 264, name: "Case HDD 2,5 ORICO Enclosure 25PW1-U3" },
+    { id: 265, name: "Case HDD 2.5\" SAMSUNG usb 2.0" },
+    { id: 266, name: "Case HDD 2,5 Maxline" },
+    { id: 267, name: "Kabel USB to Sata HDD" },
+    { id: 268, name: "TP-LINK Archer AC1350 Dual Band" },
+    { id: 269, name: "TP-LINK Archer C54" },
+    { id: 270, name: "TP-LINK CPE210 Outdoor" },
+    { id: 271, name: "TP-LINK CPE220 Outdoor" },
+    { id: 272, name: "TP-LINK CPE510 Outdoor" },
+    { id: 273, name: "TP-LINK DECO E4 (1-Pack) AC 1200 Whole Home" },
+    { id: 274, name: "TP-LINK EAP110 Outdoor" },
+    { id: 275, name: "TP-LINK EAP115-Wall 300Mbps" },
+    { id: 276, name: "TP-LINK EAP110 Indoor" },
+    { id: 277, name: "TP-LINK 4G LTE Router TL-MR105" },
+    { id: 278, name: "TP-LINK  Router TL-MR-3420" },
+    { id: 279, name: "TP-LINK TL-POE150S POE Adapter" },
+    { id: 280, name: "TP-LINK Switch LS-1005" },
+    { id: 281, name: "TP-LINK Switch TLS1005G Gigabit" },
+    { id: 282, name: "TP-LINK Switch  TL-SF1016D" },
+    { id: 283, name: "TP-LINK Switch  TL-SG1005P 4 Port POE" },
+    { id: 284, name: "TP-LINK SWITCH 16 Port TL-SG1016D Gigabit Dekstop Rackmount" },
+    { id: 285, name: "TP-LINK SWITCH 24 Port TL-SG1024D Gigabit" },
+    { id: 286, name: "TP-LINK Switch  TL-SG108PE" },
+    { id: 287, name: "TP-LINK Bluetooth USB  5.3  UB500" },
+    { id: 288, name: "TP-LINK Range Ext TL-WA820RE" },
+    { id: 289, name: "TP-LINK Range Extender  TL-WA850RE" },
+    { id: 290, name: "TP-LINK Range Extender  TL-WA854RE" },
+    { id: 291, name: "TP-LINK Range Extender  TL-WA855RE" },
+    { id: 292, name: "TP-LINK TL-WN722N USB WIFI" },
+    { id: 293, name: "TP-LINK TL-WN725N USB WIFI Nano Size" },
+    { id: 294, name: "TP-LINK TL-WN727N USB WIFI" },
+    { id: 295, name: "TP-LINK TL-WN781ND PCI EXP WIFI" },
+    { id: 296, name: "TP-LINK TL-WN821N USB WIFI" },
+    { id: 297, name: "TP-LINK  Router TL-WR3020" },
+    { id: 298, name: "TP-LINK Router TL-WR840N" },
+    { id: 299, name: "TP-LINK ROUTER TL-WR841HP Power" },
+    { id: 300, name: "TP-LINK Router TL-WR845N" },
+    { id: 301, name: "TP-LINK Router TL-WR940N" },
+    { id: 302, name: "TP-LINK FC111-AB Media Converter" },
+    { id: 303, name: "Stop Kontak 3Lb +kabel 3m Black Panther" },
+    { id: 304, name: "Stop Kontak 4Lb +kabel 5m Black Panther" },
+    { id: 305, name: "Stop Kontak Broco Inbow" },
+    { id: 306, name: "Stop Kontak Arde Broco Outbow" },
+    { id: 307, name: "Stop Kontak Outdoor Broco 2151" },
+    { id: 308, name: "Stop Kontak Clipsal Outbow" },
+    { id: 309, name: "Stop Kontak 3Lb +kabel 3m Rubytech" },
+    { id: 310, name: "Stop Kontak 3Lb +kabel 5m Rubytech" },
+    { id: 311, name: "Stop Kontak 5Lb +kabel 3m Rubytech" },
+    { id: 312, name: "Stop Kontak 5Lb +kabel 5m Rubytech" },
+    { id: 313, name: "Stop Kontak 3Lb +kabel 3m Bright G" },
+    { id: 314, name: "Stop Kontak 3Lb +kabel 5m Bright G" },
+    { id: 315, name: "Stop Kontak 4Lb +kabel 3m Bright G" },
+    { id: 316, name: "Stop Kontak 4Lb +kabel 5m Bright G" },
+    { id: 317, name: "Stop Kontak Clipsal Inbow" },
+    { id: 318, name: "Stop Kontak Masko Inbow" },
+    { id: 319, name: "Stop Kontak Masko Outbow" },
+    { id: 320, name: "Stop Kontak Myvo 4Lb + kabel 3 Yard" },
+    { id: 321, name: "Stop Kontak Masko Inbow T-1550" },
+    { id: 322, name: "Stop Kontak Masko Inbow V-350" },
+    { id: 323, name: "Stop Kontak Bright Inbow BG8611" },
+    { id: 324, name: "Stop Kontak Shukaku 2 lb" },
+    { id: 325, name: "Stop Kontak Shukaku 4 lb" },
+    { id: 326, name: "Stop Kontak Shukaku 5 lb" },
+    { id: 327, name: "Stop Kontak Simon Inbow E3 301687" },
+    { id: 328, name: "Stop Kontak Simon Inbow Multy + saklar" },
+    { id: 329, name: "Stop Kontak Uticon 1 lubang" },
+    { id: 330, name: "Stop Kontak Uticon 2 lubang" },
+    { id: 331, name: "Stop Kontak Uticon 4 lubang" },
+    { id: 332, name: "Stop Kontak Uticon 5 lubang" },
+    { id: 333, name: "Stop Kontak Uticon 6 lubang" },
+    { id: 334, name: "Stop Kontak Aksara 2 lubang" },
+    { id: 335, name: "Stop Kontak Aksara 3 lubang" },
+    { id: 336, name: "Stop Kontak Visalux Lubang 3+Saklar" },
+    { id: 337, name: "Stop Kontak Visalux Lubang 5+Saklar" },
+    { id: 338, name: "Stop Kontak Tanam + Frame" },
+    { id: 339, name: "Stop Kontak 2 Lb Rubytech" },
+    { id: 340, name: "Stop Kontak 4 Lb Rubytech" },
+    { id: 341, name: "Stop Kontak+kabel 3 LB Bright G" },
+    { id: 342, name: "Wall/Face Plate+Modular RJ45 K281" },
+    { id: 343, name: "Wall/Face Plate+Modular RJ45 K282" },
+    { id: 344, name: "Wall/Face plate TV K-257" },
+    { id: 345, name: "Wall/Face plate +Modular Rj11 K-259" },
+    { id: 346, name: "Wall/Face Plate+Modular RJ45 N581" },
+    { id: 347, name: "Wall/Face Plate + modular1 Lubang NYK" },
+    { id: 348, name: "Wall/Face Plate+ modular 2 Lubang NYK" },
+    { id: 349, name: "Wall/Face plate 2 Lubang AMP" },
+    { id: 350, name: "Wall/Face plate VGA" },
+    { id: 351, name: "Tang Krimping / Skun HSC8" },
+    { id: 352, name: "Tang Krimping HT-2810R" },
+    { id: 353, name: "Tang Crone HT-3141" },
+    { id: 354, name: "Tang Krimping Double HT-500R" },
+    { id: 355, name: "Tang Krimping Double HT-546R" },
+    { id: 356, name: "Tang Kupas Kabel CT-1107" },
+    { id: 357, name: "Tang Krimping Tools GT-81" },
+    { id: 358, name: "Tang Krimping Gain Tech GT86" },
+    { id: 359, name: "Tang Krimping Double TTK-506" },
+    { id: 360, name: "Tang Krimping Vention Black" },
+    { id: 361, name: "Tang Krimping Ugreen 10952" },
+    { id: 362, name: "Tang Krimping Ugreen 70683" },
+    { id: 363, name: "Tang Potong Tekiro 4.5\"" },
+    { id: 364, name: "Tang Potong Tekiro 6\"" },
+    { id: 365, name: "Tang Kombinasi Tekiro 7\"" },
+    { id: 366, name: "Tang cucut Tekiro 4.5\"" },
+    { id: 367, name: "Tang cucut Tekiro 6\"" },
+    { id: 368, name: "Tang Potong Masko 6\"" },
+    { id: 369, name: "Tang Kombinasi Masko 6\"" },
+    { id: 370, name: "Tang Kombinasi Masko 7\"" },
+    { id: 371, name: "Tang Lancip Masko 6\"" },
+    { id: 372, name: "Tang Ampere mini winer" },
+    { id: 373, name: "Tang Ampere / Clamp Meter ST181" },
+    { id: 374, name: "Tang Kupas Winer TL-9300" },
+    { id: 375, name: "Tang Potong Kecil" },
+    { id: 376, name: "Kabel Jack Akai/Mic Benji" },
+    { id: 377, name: "Kabel Jack Akai/Mic L Benji" },
+    { id: 378, name: "Kabel Jack XLR Female Benji" },
+    { id: 379, name: "Kabel Jack Akai/Mic Benji Stereo" },
+    { id: 380, name: "Kabel Jack AKAi Stereo Benji" },
+    { id: 381, name: "Kabel Jack Aux 3.5mm Benji" },
+    { id: 382, name: "Kabel Jack XLR Male Benji" },
+    { id: 383, name: "Obeng Set Jackly" },
+    { id: 384, name: "Obeng Set 36 in 1" },
+    { id: 385, name: "Obeng Set Power 9128" },
+    { id: 386, name: "Obeng testpen Muxindo 101 Kecil" },
+    { id: 387, name: "Obeng testpen Rocia 101 Kecil" },
+    { id: 388, name: "Obeng 4\" EV-7311 (+)" },
+    { id: 389, name: "Obeng 4\" EV-7312 (-)" },
+    { id: 390, name: "Obeng Masko 37100" },
+    { id: 391, name: "Obeng Set 31 in 1 TE-6036" },
+    { id: 392, name: "Obeng Set 45 in 1 6089" },
+    { id: 393, name: "Obeng Set 115 HP Full Set" },
+    { id: 394, name: "Obeng Viper 3306" },
+    { id: 395, name: "Obeng +/- USA" },
+    { id: 396, name: "Solder 40W Deko" },
+    { id: 397, name: "Solder 40W Osmond" },
+    { id: 398, name: "Solder 60W Deko" },
+    { id: 399, name: "Solder 30W Deko" },
+    { id: 400, name: "Solder 40W Spardio AKI09" },
+    { id: 401, name: "Solder 30W Biasa" },
+    { id: 402, name: "Solder 30W Std" },
+    { id: 403, name: "Solder 40W Biasa" },
+    { id: 404, name: "Solder 40W Std" },
+    { id: 405, name: "Solder Kayu" },
+    { id: 406, name: "Solder Tembak Spardio" },
+    { id: 407, name: "Solder Visero 40 watt Kayu" },
+    { id: 408, name: "Solder Gun Myfair MF-789" },
+    { id: 409, name: "Solder Myfair 40W" },
+    { id: 410, name: "Solder 150Watt" },
+    { id: 411, name: "Solder 200Watt" },
+    { id: 412, name: "Solder SR CS840" },
+    { id: 413, name: "Solder SR" },
+    { id: 414, name: "Solder Deko 93" },
+    { id: 415, name: "Solder Tembak Dekko 938N" },
+    { id: 416, name: "Solder Masda 40 Watt" },
+    { id: 417, name: "Solder Gun Masda 938" },
+    { id: 418, name: "Solder 40 Watt Winner" },
+    { id: 419, name: "Volt Meter Mini+Frame" },
+    { id: 420, name: "Volt Meter Mini" },
+    { id: 421, name: "Multimeter Digital DM850" },
+    { id: 422, name: "Multimeter Digital Viver DT830B" },
+    { id: 423, name: "Multimeter Digital Deton DT830" },
+    { id: 424, name: "Multimeter Digital 9205A" },
+    { id: 425, name: "Multimeter Digital MAS830L" },
+    { id: 426, name: "Multimeter Digital DT860" },
+    { id: 427, name: "Multimeter Digital mini" },
+    { id: 428, name: "Multimeter Viver mini" },
+    { id: 429, name: "Multimeter MF" },
+    { id: 430, name: "Multimeter WN" },
+    { id: 431, name: "Multimeter Spardio" },
+    { id: 432, name: "Multimeter Digital Spardio SP9908A" },
+    { id: 433, name: "Multimeter Digital SZ01" },
+    { id: 434, name: "Multimeter Digital SZ08" },
+    { id: 435, name: "Multimeter Joker MT-360TRN" },
+    { id: 436, name: "Multimeter Bobatest Smart BB-123" },
+    { id: 437, name: "Multimeter Digital Victor" },
+    { id: 438, name: "Digital Clamp MeterKlop DT266" },
+    { id: 439, name: "Digital Clamp Meter DM" },
+    { id: 440, name: "Digital Clamp Meter MT" },
+    { id: 441, name: "MonitorLCD 22\" Proview PRO-LED22A-2K" },
+    { id: 442, name: "Monitor Dahua 24\" DHI-LM24B200S" },
+    { id: 443, name: "Monitor Dahua 24\" DHI-LM24-B201S" },
+    { id: 444, name: "Monitor Aevision 19\" AE-LED19A-2K" },
+    { id: 445, name: "Monitor COOCAA 32\" TV" },
+    { id: 446, name: "Monitor Dahua 19\" DHI-LM19-A202F" },
+    { id: 447, name: "Monitor Dahua 19\" DHI-LM19-A202H" },
+    { id: 448, name: "Monitor Dahua 19\" DHI-LM19B200" },
+    { id: 449, name: "Monitor Dahua 20\" LM-20A-200S" },
+    { id: 450, name: "Monitor Dahua DHI-LM22-B200" },
+    { id: 451, name: "Monitor Dahua DHI-LM22-B200S-V2" },
+    { id: 452, name: "Monitor Dahua DHI-LM22-B201S" },
+    { id: 453, name: "Monitor Dahua 22\" DHI-L22-H200" },
+    { id: 454, name: "Monitor Hikvision DS-D5019" },
+    { id: 455, name: "Monitor Hikvision D5022FN00 22\"" },
+    { id: 456, name: "Monitor Hikvision DS-D5022F2-1V2S + Audio" },
+    { id: 457, name: "Monitor Hikvision DS-D5022F2-1P2" },
+    { id: 458, name: "Monitor Hikvision DS-D5022FN" },
+    { id: 459, name: "Monitor Hikvision DS-D5022QE" },
+    { id: 460, name: "Monitor Hikvision D5109S0-P0 19\"" },
+    { id: 461, name: "Monitor HiView 22\" HV-22RX100+ Speaker" },
+    { id: 462, name: "Monitor INFORCE 16\" 1560MW" },
+    { id: 463, name: "Monitor INFORCE 2400AT" },
+    { id: 464, name: "Monitor Inforce 19\" 1950NH" },
+    { id: 465, name: "Monitor Infinity 22\" IA-NM228CS+Audio" },
+    { id: 466, name: "Monitor Lenovo LE-22E-40 FHD 75HZ" },
+    { id: 467, name: "Monitor Lenovo D24-40 FHD 75HZ" },
+    { id: 468, name: "Monitor LG 19M38" },
+    { id: 469, name: "Monitor LG 19M38-B HDMI" },
+    { id: 470, name: "MONITOR LG 19M38L-B (HD HDMI/VGA)" },
+    { id: 471, name: "Monitor LG 20MK400A-B" },
+    { id: 472, name: "Monitor LG 20MK400H HDMI" },
+    { id: 473, name: "Monitor LG 22MK400" },
+    { id: 474, name: "Monitor LG 22MK430" },
+    { id: 475, name: "Monitor LG 22MP410-B" },
+    { id: 476, name: "Monitor LG 24MK430H-B 24 HDMI - IPS" },
+    { id: 477, name: "Monitor LG 24MP400-B 24 HDMI - IPS" },
+    { id: 478, name: "Monitor Iware 16\" HDMI+VGA" },
+    { id: 479, name: "Monitor Megavision 19\"" },
+    { id: 480, name: "Monitor XiAOMI MI A22 FHD 75HZ" },
+    { id: 481, name: "Monitor XiAOMI TV A2 HD 32\"" },
+    { id: 482, name: "Monitor XiAOMI MI 1C 24\" nIPS 75HZ HDMi VGA" },
+    { id: 483, name: "Monitor XiAOMI MI A271 FHD IPS100HZ" },
+    { id: 484, name: "Monitor XiAOMI TV A FHD 2K 43\"" },
+    { id: 485, name: "Monitor SPC 19\" SM19 HD" },
+    { id: 486, name: "Monitor Samsung 32\" TV" },
+    { id: 487, name: "Monitor Dahua 43\" TV 4K" },
+    { id: 488, name: "Monitor Samsung LS19A330" },
+    { id: 489, name: "Monitor Proview 19\" SM-LED19A" },
+    { id: 490, name: "Monitor Proview 22\" SM-LED22A" },
+    { id: 491, name: "Monitor Tagvision 19\" TAG-LED19A" },
+    { id: 492, name: "Monitor Uniarch 22\" MT-22L" },
+    { id: 493, name: "Monitor Dahua 1080p 43\"" },
+    { id: 494, name: "Box Panel IONEE 30x40x20 Topi" },
+    { id: 495, name: "Box Panel IONEE 35x25x12" },
+    { id: 496, name: "Box Panel IONEE 40x30x15" }
+
+    ];
+    
+    // Variabel untuk menyimpan pesanan dan preferensi
+    let orders = {};
+    let totalItems = 0;
+    
+    // Fungsi debounce untuk menunda eksekusi
+    function debounce(func, delay) {
+        let timeoutId;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                func.apply(context, args);
+            }, delay);
+        };
+    }
+    
+    // Fungsi untuk memuat produk
+    function loadProducts() {
+        const container = document.getElementById('products-container');
+        if (!container) return;
+    
+        container.innerHTML = '';
+        
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+        const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+        
+        products.forEach(product => {
+            if (!product.id || !product.name) return;
+            
+            const isFavorite = favorites[product.id] || false;
+            const currentUnit = units[product.id] || 'pcs';
+    
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+            productCard.dataset.id = product.id;
+            productCard.dataset.name = product.name.toLowerCase();
+            
+            productCard.innerHTML = `
+            <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${product.id}">
+                <i class="fas ${isFavorite ? 'fas' : 'far'} fa-bookmark"></i>
+            </button>
+            <div class="product-name">${product.name}</div>
+            <div class="unit-control">
+                <button class="quantity-btn minus" data-id="${product.id}"><i class="fas fa-minus"></i></button>
+                <input type="number" class="quantity-input" data-id="${product.id}" value="0" min="0">
+                <button class="quantity-btn plus" data-id="${product.id}"><i class="fas fa-plus"></i></button>
+                <select class="unit-selector" data-id="${product.id}">
+                    <option value="pcs" ${currentUnit === 'pcs' ? 'selected' : ''}>pcs</option>
+                    <option value="pack" ${currentUnit === 'pack' ? 'selected' : ''}>pack</option>
+                    <option value="dus" ${currentUnit === 'dus' ? 'selected' : ''}>dus</option>
+                </select>
+            </div>
+        `;
+            container.appendChild(productCard);
+        });
+    }
+    
+    // Fungsi untuk memfilter produk berdasarkan pencarian
+    function filterProducts() {
+        const searchTerm = document.getElementById('search').value.toLowerCase();
+        const productCards = document.querySelectorAll('.product-card');
+        let visibleCount = 0;
+        const showFavorites = document.getElementById('show-favorites').classList.contains('active');
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+        
+        productCards.forEach(card => {
+            const productName = card.dataset.name;
+            const productId = card.dataset.id;
+            
+            const shouldShow = showFavorites ? 
+                favorites[productId] && productName.includes(searchTerm) :
+                productName.includes(searchTerm);
+            
+            if (shouldShow) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        const noResults = document.getElementById('no-results');
+        noResults.classList.toggle('show', visibleCount === 0);
+        
+        const clearBtn = document.getElementById('clear-search');
+        clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
+    }
+    
+    // Fungsi untuk memfilter favorit
+    function filterFavorites() {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+        const productCards = document.querySelectorAll('.product-card');
+        let visibleCount = 0;
+        const searchTerm = document.getElementById('search').value.toLowerCase();
+        
+        productCards.forEach(card => {
+            const productId = card.dataset.id;
+            const productName = card.dataset.name;
+            
+            const isFavorite = favorites[productId];
+            const matchesSearch = productName.includes(searchTerm);
+            
+            if (isFavorite && (searchTerm === '' || matchesSearch)) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        const noResults = document.getElementById('no-results');
+        noResults.classList.toggle('show', visibleCount === 0);
+    }
+    
+    // Fungsi untuk memperbarui input produk berdasarkan pesanan
+    function updateProductInputs() {
+        for (const productId in orders) {
+            const input = document.querySelector(`.quantity-input[data-id="${productId}"]`);
+            if (input) {
+                input.value = orders[productId];
+            }
+        }
+    }
+    
+    // Fungsi untuk menghitung jumlah item yang dipesan
+    function calculateOrderedItems() {
+        let count = 0;
+        for (const productId in orders) {
+            if (orders[productId] > 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    // Fungsi untuk menghasilkan teks pesanan
+    function generateOrderText() {
+    let message = "Order barang :\n\n"; // huruf kecil
+    const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+
+    const sortedProductIds = Object.keys(orders).sort((a, b) => {
+        const productA = products.find(p => p.id == a);
+        const productB = products.find(p => p.id == b);
+        return productA.name.localeCompare(productB.name);
+    });
+
+    let itemNumber = 1;
+
+    sortedProductIds.forEach(productId => {
+        const quantity = orders[productId];
+        if (quantity > 0) {
+            const product = products.find(p => p.id == productId);
+            const unit = units[productId] || 'pcs';
+
+            // Format baru dengan spasi setelah nomor dan sesuai permintaan
+            if (unit === 'pcs') {
+                message += `${itemNumber}. ${product.name} (${quantity}) =\n\n`;
+            } else {
+                message += `${itemNumber}. ${product.name} (${quantity} ${unit}) =\n\n`;
+            }
+            itemNumber++;
+        }
+    });
+
+    return message;
+}
+
+    
+    // Fungsi untuk memperbarui ringkasan pesanan
+    function updateOrderSummary() {
+        const orderItemsContainer = document.getElementById('order-items');
+        const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+        
+        totalItems = calculateOrderedItems();
+        orderItemsContainer.innerHTML = '';
+        
+        if (totalItems === 0) {
+            const emptyMessage = document.createElement('div');
+            emptyMessage.className = 'empty-order';
+            emptyMessage.textContent = 'sing misi ape';
+            orderItemsContainer.appendChild(emptyMessage);
+        } else {
+            let itemNumber = 1;
+            
+            const sortedProductIds = Object.keys(orders).sort((a, b) => {
+                const productA = products.find(p => p.id == a);
+                const productB = products.find(p => p.id == b);
+                return productA.name.localeCompare(productB.name);
+            });
+            
+            sortedProductIds.forEach(productId => {
+                const quantity = orders[productId];
+                if (quantity > 0) {
+                    const product = products.find(p => p.id == productId);
+                    const unit = units[productId] || 'pcs';
+                    
+                    const orderItem = document.createElement('div');
+                    orderItem.className = 'order-item';
+                    orderItem.innerHTML = `
+                 <div class="order-item-name">
+                    <span class="item-number">${itemNumber}.</span>
+                    <div class="product-name-wrapper">
+                        ${product.name}
+                    </div>
+                    <span class="unit-display">${unit}</span>
+                </div>
+                        <div class="order-item-control">
+                            <button class="quantity-btn minus" data-id="${productId}"><i class="fas fa-minus"></i></button>
+                            <input type="number" class="order-quantity-input" data-id="${productId}" value="${quantity}" min="0">
+                            <button class="quantity-btn plus" data-id="${productId}"><i class="fas fa-plus"></i></button>
+                        </div>
+                    `;
+                    orderItemsContainer.appendChild(orderItem);
+                    itemNumber++;
+                }
+            });
+        }
+        
+        document.getElementById('item-count').textContent = totalItems;
+        document.getElementById('order-item-count').textContent = totalItems;
+    
+        const summaryInputs = document.querySelectorAll('#order-items .order-quantity-input');
+        summaryInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const productId = this.dataset.id;
+                let value = parseInt(this.value) || 0;
+                this.value = Math.max(0, value);
+                orders[productId] = parseInt(this.value);
+                
+                if (orders[productId] === 0) {
+                    delete orders[productId];
+                }
+                
+                updateProductInputs();
+                updateOrderSummary();
+            });
+        });
+    }
+    
+    // Fungsi untuk menangani perubahan kuantitas
+    function handleQuantityChange(productId, newValue) {
+        newValue = Math.max(0, newValue);
+        
+        if (newValue > 0) {
+            orders[productId] = newValue;
+        } else {
+            delete orders[productId];
+        }
+        
+        const productInput = document.querySelector(`.quantity-input[data-id="${productId}"]`);
+        if (productInput) {
+            productInput.value = newValue;
+        }
+        
+        updateOrderSummary();
+    }
+    
+    // Fungsi untuk mengirim pesanan ke WhatsApp
+    function sendOrderToWhatsApp() {
+        if (totalItems === 0) {
+            showToast('List pesanan nu puyung');
+            return;
+        }
+        
+        const message = generateOrderText();
+        const phoneNumber = '6285955202282';
+        const encodedMessage = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+        window.open(whatsappUrl, '_blank');
+    }
+    
+    // Fungsi untuk menyalin pesanan ke clipboard
+    function copyOrderToClipboard() {
+        if (totalItems === 0) {
+            showToast('List pesanan nu puyung');
+            return;
+        }
+        
+        const message = generateOrderText();
+        navigator.clipboard.writeText(message).then(() => {
+            showToast('List pesanan berhasil disalin!');
+        }).catch(err => {
+            console.error('Gagal menyalin: ', err);
+            showToast('Gagal menyalin list pesanan');
+        });
+    }
+    
+    // Fungsi untuk menampilkan toast notification
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+    
+    // Fungsi untuk reset semua pesanan
+    function resetAllOrders() {
+        if (totalItems === 0) {
+            showToast('List pesanan nu puyung');
+            return;
+        }
+        
+        document.getElementById('confirmModal').style.display = 'flex';
+    }
+    
+    // Fungsi untuk melakukan reset setelah dikonfirmasi
+    function performReset() {
+        orders = {};
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            input.value = 0;
+        });
+        updateOrderSummary();
+        document.getElementById('confirmModal').style.display = 'none';
+    }
+    
+    // Fungsi untuk toggle tampilan
+    function toggleView(view) {
+        const productsView = document.getElementById('products-view');
+        const orderSummary = document.getElementById('order-summary');
+        const showProductsBtn = document.getElementById('show-products');
+        const showOrdersBtn = document.getElementById('show-orders');
+        const showFavoritesBtn = document.getElementById('show-favorites');
+        
+        showProductsBtn.classList.remove('active');
+        showOrdersBtn.classList.remove('active');
+        showFavoritesBtn.classList.remove('active');
+        
+        if (view === 'products') {
+            productsView.style.display = 'block';
+            orderSummary.style.display = 'none';
+            showProductsBtn.classList.add('active');
+            filterProducts();
+        } else if (view === 'orders') {
+            productsView.style.display = 'none';
+            orderSummary.style.display = 'block';
+            showOrdersBtn.classList.add('active');
+            updateOrderSummary();
+        } else if (view === 'favorites') {
+            productsView.style.display = 'block';
+            orderSummary.style.display = 'none';
+            showFavoritesBtn.classList.add('active');
+            filterFavorites();
+        }
+    }
+    
+    // Fungsi untuk toggle favorit
+    function toggleFavorite(productId) {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+        favorites[productId] = !favorites[productId];
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        
+        const favoriteBtn = document.querySelector(`.favorite-btn[data-id="${productId}"]`);
+        if (favoriteBtn) {
+            favoriteBtn.classList.toggle('active', favorites[productId]);
+            favoriteBtn.querySelector('i').className = favorites[productId] ? 'fas fa-bookmark' : 'far fa-bookmark';
+        }
+        
+        if (document.getElementById('show-favorites').classList.contains('active')) {
+            filterFavorites();
+        }
+    }
+    
+    // Fungsi untuk toggle dark mode
+    function toggleDarkMode() {
+        const body = document.body;
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        
+        body.classList.toggle('dark-mode');
+        const isDarkMode = body.classList.contains('dark-mode');
+        
+        if (isDarkMode) {
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            localStorage.setItem('darkMode', 'true');
+        } else {
+            darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            localStorage.setItem('darkMode', 'false');
+        }
+        
+        // Tampilkan overlay animasi
+        const darkModeOverlay = document.querySelector('.dark-mode-overlay');
+        darkModeOverlay.style.display = 'block';
+        setTimeout(() => {
+            darkModeOverlay.style.display = 'none';
+        }, 1000);
+    }
+    
+    // Fungsi untuk menampilkan suggestion
+    function showSuggestions(searchTerm) {
+        const suggestionsContainer = document.getElementById('search-suggestions');
+        suggestionsContainer.innerHTML = '';
+        
+        if (searchTerm.length < 1) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        const term = searchTerm.toLowerCase();
+        const matchedProducts = products.filter(product => 
+            product.name.toLowerCase().includes(term)
+        ).slice(0, 5);
+        
+        if (matchedProducts.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        matchedProducts.forEach(product => {
+            const suggestionItem = document.createElement('div');
+            suggestionItem.className = 'suggestion-item';
+            suggestionItem.textContent = product.name;
+            suggestionItem.dataset.id = product.id;
+            
+            const startIdx = product.name.toLowerCase().indexOf(term);
+            if (startIdx >= 0) {
+                const endIdx = startIdx + term.length;
+                const before = product.name.substring(0, startIdx);
+                const match = product.name.substring(startIdx, endIdx);
+                const after = product.name.substring(endIdx);
+                
+                suggestionItem.innerHTML = `${before}<span class="suggestion-highlight">${match}</span>${after}`;
+            }
+            
+            suggestionItem.addEventListener('click', () => {
+                document.getElementById('search').value = product.name;
+                suggestionsContainer.style.display = 'none';
+                filterProducts();
+                document.getElementById('search').focus();
+            });
+            
+            suggestionsContainer.appendChild(suggestionItem);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    // Fungsi untuk menyembunyikan suggestion
+    function hideSuggestions() {
+        const suggestionsContainer = document.getElementById('search-suggestions');
+        suggestionsContainer.style.display = 'none';
+    }
+    
+    // Fungsi untuk menangani keyboard navigation
+    function handleSearchKeyDown(e) {
+        const suggestions = document.querySelectorAll('.suggestion-item');
+        if (!suggestions.length) return;
+        
+        const activeSuggestion = document.querySelector('.suggestion-item.active');
+        let index = Array.from(suggestions).indexOf(activeSuggestion);
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (index < suggestions.length - 1) {
+                    index++;
+                } else {
+                    index = 0;
+                }
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                if (index > 0) {
+                    index--;
+                } else {
+                    index = suggestions.length - 1;
+                }
+                break;
+            case 'Enter':
+                if (activeSuggestion) {
+                    e.preventDefault();
+                    document.getElementById('search').value = activeSuggestion.textContent;
+                    hideSuggestions();
+                    filterProducts();
+                }
+                return;
+            case 'Escape':
+                hideSuggestions();
+                return;
+            default:
+                return;
+        }
+        
+        suggestions.forEach(s => s.classList.remove('active'));
+        suggestions[index].classList.add('active');
+    }
+    
+    // Fungsi untuk mencetak PDF
+    function printOrderToPDF() {
+        if (totalItems === 0) {
+            showToast('List pesanan nu puyung');
+            return;
+        }
+    
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const today = new Date();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+    
+        // Format Tanggal dan Jam
+        const hari = hariIndonesia[today.getDay()];
+        const tanggal = today.toLocaleDateString('id-ID');
+        const jam = today.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    
+        // Background
+        doc.setFillColor(245, 248, 250);
+        doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), 'F');
+    
+        // Judul
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 70, 120);
+        doc.text('ELECTRA KAPAL ORDER LIST', pageWidth / 2, 20, { align: 'center' });
+    
+        // Garis bawah judul
+        doc.setDrawColor(50, 100, 150);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 25, pageWidth - margin, 25);
+    
+        // Informasi tanggal dan jam
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`${tanggal}, ${hari}, ${jam}`, margin, 35);
+    
+        // Tabel pesanan
+        const headers = [['No', 'Nama Barang', 'Jumlah']];
+        const data = [];
+        let no = 1;
+        let totalBarang = 0;
+    
+        for (const id in orders) {
+            if (orders[id] > 0) {
+                const product = products.find(p => p.id == id);
+                data.push([no++, product.name, orders[id]]);
+                totalBarang += orders[id];
+            }
+        }
+    
+        doc.autoTable({
+            startY: 45,
+            head: headers,
+            body: data,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [30, 70, 120],
+                textColor: 255,
+                fontStyle: 'bold',
+                halign: 'center',
+                lineWidth: 0.3
+            },
+            bodyStyles: {
+                textColor: [50, 50, 50],
+                lineWidth: 0.1,
+                cellPadding: 4
+            },
+            alternateRowStyles: {
+                fillColor: [245, 248, 250]
+            },
+            styles: {
+                fontSize: 10,
+                cellPadding: 4,
+                valign: 'middle',
+                lineColor: [200, 200, 200],
+                lineWidth: 0.2,
+                font: 'helvetica'
+            },
+            columnStyles: {
+                0: { 
+                    cellWidth: 15, 
+                    halign: 'center',
+                    fillColor: [245, 248, 250]
+                },
+                1: { 
+                    cellWidth: 'auto',
+                    fontStyle: 'bold'
+                },
+                2: { 
+                    cellWidth: 25, 
+                    halign: 'center',
+                    fillColor: [245, 248, 250]
+                }
+            },
+            margin: { left: margin, right: margin }
+        });
+    
+        // Total Barang
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 70, 120);
+        doc.text(`Total Barang: ${totalBarang}`, pageWidth - margin, finalY, { align: 'right' });
+    
+        // Garis penutup
+        doc.setDrawColor(30, 70, 120);
+        doc.setLineWidth(0.3);
+        doc.line(margin, finalY + 5, pageWidth - margin, finalY + 5);
+    
+        // Simpan PDF
+        const timestamp = today.toISOString().slice(0, 10).replace(/-/g, '');
+        doc.save(`Pesanan_Electra_Kapal_${timestamp}.pdf`);
+    }
+    
+    // Event listeners saat DOM siap
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProducts();
+        
+        // Cek preferensi dark mode
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkModeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+        }
+        
+        // Pencarian produk
+        const searchInput = document.getElementById('search');
+        searchInput.addEventListener('input', debounce(function(e) {
+            filterProducts();
+            showSuggestions(e.target.value);
+        }, 100));
+        
+        searchInput.addEventListener('keydown', handleSearchKeyDown);
+        
+        // Sembunyikan suggestion saat klik di luar
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrapper')) {
+                hideSuggestions();
+            }
+        });
+        
+        // Tombol clear search
+        document.getElementById('clear-search').addEventListener('click', function() {
+            searchInput.value = '';
+            filterProducts();
+            hideSuggestions();
+            searchInput.focus();
+        });
+        
+        // Delegasi event untuk semua interaksi
+        document.addEventListener('click', (e) => {
+            // Tombol favorit
+            if (e.target.closest('.favorite-btn')) {
+                const btn = e.target.closest('.favorite-btn');
+                toggleFavorite(btn.dataset.id);
+                return;
+            }
+            
+            // Tombol plus/minus
+            const plusBtn = e.target.closest('.plus');
+            const minusBtn = e.target.closest('.minus');
+            
+            if (plusBtn || minusBtn) {
+                const button = plusBtn || minusBtn;
+                const productId = button.dataset.id;
+                const input = button.parentElement.querySelector('input');
+                let value = parseInt(input.value) || 0;
+                
+                if (plusBtn) {
+                    value++;
+                } else {
+                    value = Math.max(0, value - 1);
+                }
+                
+                input.value = value;
+                handleQuantityChange(productId, value);
+            }
+        });
+        
+        // Perubahan input manual
+        document.addEventListener('change', (e) => {
+            // Input kuantitas
+            if (e.target.classList.contains('quantity-input') || 
+                e.target.classList.contains('order-quantity-input')) {
+                
+                const productId = e.target.dataset.id;
+                const newValue = parseInt(e.target.value) || 0;
+                
+                e.target.value = Math.max(0, newValue);
+                handleQuantityChange(productId, e.target.value);
+            }
+            
+            // Selector satuan
+            if (e.target.classList.contains('unit-selector')) {
+                const productId = e.target.dataset.id;
+                const unit = e.target.value;
+                
+                const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+                units[productId] = unit;
+                localStorage.setItem('productUnits', JSON.stringify(units));
+                
+                if (orders[productId]) {
+                    updateOrderSummary();
+                }
+            }
+        });
+        
+        // Kirim ke WhatsApp
+        document.getElementById('send-order').addEventListener('click', sendOrderToWhatsApp);
+        
+        // Reset pesanan
+        document.getElementById('reset-order').addEventListener('click', resetAllOrders);
+        
+        // Konfirmasi reset
+        document.getElementById('confirmReset').addEventListener('click', performReset);
+        document.getElementById('cancelReset').addEventListener('click', function() {
+            document.getElementById('confirmModal').style.display = 'none';
+        });
+        
+        // Toggle tampilan
+        document.getElementById('show-products').addEventListener('click', () => toggleView('products'));
+        document.getElementById('show-orders').addEventListener('click', () => toggleView('orders'));
+        document.getElementById('show-favorites').addEventListener('click', () => {
+            const btn = document.getElementById('show-favorites');
+            btn.classList.toggle('active');
+            toggleView(btn.classList.contains('active') ? 'favorites' : 'products');
+        });
+        
+        // Dark mode toggle
+        document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+        
+        // Salin list pesanan
+        document.getElementById('copy-order-btn').addEventListener('click', copyOrderToClipboard);
+        
+        // Cetak PDF
+        document.getElementById('print-order').addEventListener('click', printOrderToPDF);
+        
+        // Tutup modal saat klik di luar konten modal
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('confirmModal');
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Animasi dark mode overlay
+        const darkModeOverlay = document.createElement('div');
+        darkModeOverlay.className = 'dark-mode-overlay';
+        document.body.appendChild(darkModeOverlay);
+        
+        setTimeout(() => {
+            darkModeOverlay.style.display = 'none';
+        }, 1000);
+    });
+    
+    // Peringatan sebelum meninggalkan halaman jika ada pesanan
+    window.addEventListener('beforeunload', function (e) {
+        if (calculateOrderedItems() > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+  </script>
+</body>
+</html>
