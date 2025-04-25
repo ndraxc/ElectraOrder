@@ -441,6 +441,7 @@
                 margin-bottom: 5px;
                 margin-top: 0; /* Tambahkan ini untuk mengurangi margin atas judul */
             }
+            
         }
         
       
@@ -537,21 +538,24 @@
         .order-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: center; /* Ubah dari flex-start ke center */
             padding: 10px 0;
             border-bottom: 1px solid #eee;
+            min-height: 50px; /* Tambahkan tinggi minimum */
         }
-        
+                
         .dark-mode .order-item {
             border-bottom-color: #444;
         }
         
         .order-item-name {
             display: flex;
-            align-items: center; /* Ubah dari flex-start ke center */
+            align-items: center; /* Pastikan rata tengah vertikal */
             flex-grow: 1;
-            gap: 0; /* Hapus gap atau kurangi */
+            gap: 8px; /* Beri jarak antara elemen */
+            padding-right: 10px;
         }
+
         .unit-display {
             font-size: 12px;
             color: #666;
@@ -577,7 +581,7 @@
         .product-name-wrapper {
             flex-grow: 1;
             word-break: break-word;
-            padding-right: 10px;
+            padding-right: 1px;
             text-align: left;
         }
 
@@ -611,6 +615,7 @@
             align-items: center;
             min-width: 120px;
             justify-content: flex-end;
+            height: 100%; /* Pastikan mengambil tinggi penuh */
         }
         
         .order-quantity-input {
@@ -620,6 +625,16 @@
             padding: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            height: 30px; /* Tambahkan tinggi tetap */
+            align-self: center; /* Pastikan rata tengah */
+        }
+        #order-items .quantity-btn {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: center; /* Pastikan rata tengah */
         }
         
         .dark-mode .order-quantity-input {
