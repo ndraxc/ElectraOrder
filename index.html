@@ -4624,11 +4624,14 @@
     { id: 3427, name: "Sambungan I VGA F-F" },
     { id: 3428, name: "Konektor I BNC Sambungan" }
 
+    
+
     ];
     
     // Variabel untuk menyimpan pesanan dan preferensi
     let orders = {};
     let totalItems = 0;
+    let lastSearchTerm = '';
     
     // Fungsi debounce untuk menunda eksekusi
     function debounce(func, delay) {
@@ -4687,34 +4690,62 @@
     
     // Fungsi untuk memfilter produk berdasarkan pencarian
     function filterProducts() {
-        const searchTerm = document.getElementById('search').value.toLowerCase();
-        const productCards = document.querySelectorAll('.product-card');
-        let visibleCount = 0;
-        const showFavorites = document.getElementById('show-favorites').classList.contains('active');
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
-        
-        productCards.forEach(card => {
-            const productName = card.dataset.name;
-            const productId = card.dataset.id;
-            
-            const shouldShow = showFavorites ? 
-                favorites[productId] && productName.includes(searchTerm) :
-                productName.includes(searchTerm);
-            
-            if (shouldShow) {
-                card.style.display = 'flex';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-        
-        const noResults = document.getElementById('no-results');
-        noResults.classList.toggle('show', visibleCount === 0);
-        
-        const clearBtn = document.getElementById('clear-search');
-        clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    const productCards = document.querySelectorAll('.product-card');
+    let visibleCount = 0;
+    const showFavorites = document.getElementById('show-favorites').classList.contains('active');
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    
+    // Hanya update lastSearchTerm jika ada search term baru
+    if (searchTerm !== '') {
+        lastSearchTerm = searchTerm;
     }
+    
+    // Gunakan lastSearchTerm hanya jika sedang tidak di mode favorites
+    const searchFilter = (!showFavorites && searchTerm === '') ? lastSearchTerm : searchTerm;
+    
+    productCards.forEach(card => {
+        const productName = card.dataset.name;
+        const productId = card.dataset.id;
+        
+        const shouldShow = showFavorites ? 
+            favorites[productId] && productName.includes(searchFilter) :
+            productName.includes(searchFilter);
+        
+        if (shouldShow) {
+            card.style.display = 'flex';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    const noResults = document.getElementById('no-results');
+    noResults.classList.toggle('show', visibleCount === 0);
+    
+    const clearBtn = document.getElementById('clear-search');
+    clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
+}
+// Simpan search term saat berpindah view
+function saveSearchState() {
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    if (searchTerm !== '') {
+        lastSearchTerm = searchTerm;
+    }
+}
+
+// Panggil saveSearchState sebelum berpindah view
+document.getElementById('show-orders').addEventListener('click', () => {
+    saveSearchState();
+    toggleView('orders');
+});
+
+document.getElementById('show-favorites').addEventListener('click', () => {
+    saveSearchState();
+    const btn = document.getElementById('show-favorites');
+    btn.classList.toggle('active');
+    toggleView(btn.classList.contains('active') ? 'favorites' : 'products');
+});
     
     // Fungsi untuk memfilter favorit
     function filterFavorites() {
@@ -4938,43 +4969,45 @@
     
     // Fungsi untuk melakukan reset setelah dikonfirmasi
     function performReset() {
-        orders = {};
-        document.querySelectorAll('.quantity-input').forEach(input => {
-            input.value = 0;
-        });
-        updateOrderSummary();
-        document.getElementById('confirmModal').style.display = 'none';
-    }
+            orders = {};
+            lastSearchTerm = ''; // Reset pencarian terakhir
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                input.value = 0;
+            });
+            updateOrderSummary();
+            document.getElementById('confirmModal').style.display = 'none';
+            filterProducts(); // Refresh tampilan produk
+        }
     
     // Fungsi untuk toggle tampilan
     function toggleView(view) {
-        const productsView = document.getElementById('products-view');
-        const orderSummary = document.getElementById('order-summary');
-        const showProductsBtn = document.getElementById('show-products');
-        const showOrdersBtn = document.getElementById('show-orders');
-        const showFavoritesBtn = document.getElementById('show-favorites');
-        
-        showProductsBtn.classList.remove('active');
-        showOrdersBtn.classList.remove('active');
-        showFavoritesBtn.classList.remove('active');
-        
-        if (view === 'products') {
-            productsView.style.display = 'block';
-            orderSummary.style.display = 'none';
-            showProductsBtn.classList.add('active');
-            filterProducts();
-        } else if (view === 'orders') {
-            productsView.style.display = 'none';
-            orderSummary.style.display = 'block';
-            showOrdersBtn.classList.add('active');
-            updateOrderSummary();
-        } else if (view === 'favorites') {
-            productsView.style.display = 'block';
-            orderSummary.style.display = 'none';
-            showFavoritesBtn.classList.add('active');
-            filterFavorites();
-        }
+    const productsView = document.getElementById('products-view');
+    const orderSummary = document.getElementById('order-summary');
+    const showProductsBtn = document.getElementById('show-products');
+    const showOrdersBtn = document.getElementById('show-orders');
+    const showFavoritesBtn = document.getElementById('show-favorites');
+    
+    showProductsBtn.classList.remove('active');
+    showOrdersBtn.classList.remove('active');
+    showFavoritesBtn.classList.remove('active');
+    
+    if (view === 'products') {
+        productsView.style.display = 'block';
+        orderSummary.style.display = 'none';
+        showProductsBtn.classList.add('active');
+        filterProducts(); // Tetap mempertahankan lastSearchTerm
+    } else if (view === 'orders') {
+        productsView.style.display = 'none';
+        orderSummary.style.display = 'block';
+        showOrdersBtn.classList.add('active');
+        updateOrderSummary();
+    } else if (view === 'favorites') {
+        productsView.style.display = 'block';
+        orderSummary.style.display = 'none';
+        showFavoritesBtn.classList.add('active');
+        filterFavorites();
     }
+}
     
     // Fungsi untuk toggle favorit
     function toggleFavorite(productId) {
@@ -5262,7 +5295,7 @@
         // Tombol clear search
         document.getElementById('clear-search').addEventListener('click', function() {
             searchInput.value = '';
-            filterProducts();
+            filterProducts(); // Tetap akan menggunakan lastSearchTerm
             hideSuggestions();
             searchInput.focus();
         });
