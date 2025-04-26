@@ -5281,7 +5281,7 @@ document.getElementById('show-favorites').addEventListener('click', () => {
         searchInput.addEventListener('input', debounce(function(e) {
             filterProducts();
             showSuggestions(e.target.value);
-        }, 100));
+        }, 800));
         
         searchInput.addEventListener('keydown', handleSearchKeyDown);
         
