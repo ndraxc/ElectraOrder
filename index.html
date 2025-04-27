@@ -4636,46 +4636,50 @@
 
     ];
     
-    // Variabel untuk menyimpan pesanan dan preferensi
-    let orders = {};
-    let totalItems = 0;
-    let lastSearchTerm = '';
+   // Variabel untuk menyimpan pesanan dan preferensi
+let orders = {};
+let totalItems = 0;
+let currentView = 'products'; // Menyimpan view saat ini
+let searchStates = { // Menyimpan state pencarian untuk setiap view
+    products: { term: '', lastTerm: '' },
+    favorites: { term: '', lastTerm: '' }
+};
+
+// Fungsi debounce untuk menunda eksekusi
+function debounce(func, delay) {
+    let timeoutId;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(context, args);
+        }, delay);
+    };
+}
+
+// Fungsi untuk memuat produk
+function loadProducts() {
+    const container = document.getElementById('products-container');
+    if (!container) return;
+
+    container.innerHTML = '';
     
-    // Fungsi debounce untuk menunda eksekusi
-    function debounce(func, delay) {
-        let timeoutId;
-        return function() {
-            const context = this;
-            const args = arguments;
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                func.apply(context, args);
-            }, delay);
-        };
-    }
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
     
-    // Fungsi untuk memuat produk
-    function loadProducts() {
-        const container = document.getElementById('products-container');
-        if (!container) return;
-    
-        container.innerHTML = '';
+    products.forEach(product => {
+        if (!product.id || !product.name) return;
         
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
-        const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+        const isFavorite = favorites[product.id] || false;
+        const currentUnit = units[product.id] || 'pcs';
+
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card';
+        productCard.dataset.id = product.id;
+        productCard.dataset.name = product.name.toLowerCase();
         
-        products.forEach(product => {
-            if (!product.id || !product.name) return;
-            
-            const isFavorite = favorites[product.id] || false;
-            const currentUnit = units[product.id] || 'pcs';
-    
-            const productCard = document.createElement('div');
-            productCard.className = 'product-card';
-            productCard.dataset.id = product.id;
-            productCard.dataset.name = product.name.toLowerCase();
-            
-            productCard.innerHTML = `
+        productCard.innerHTML = `
             <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${product.id}">
                 <i class="fas ${isFavorite ? 'fas' : 'far'} fa-bookmark"></i>
             </button>
@@ -4692,33 +4696,45 @@
                 </select>
             </div>
         `;
-            container.appendChild(productCard);
-        });
-    }
+        container.appendChild(productCard);
+    });
     
-    // Fungsi untuk memfilter produk berdasarkan pencarian
-    function filterProducts() {
-    const searchTerm = document.getElementById('search').value.toLowerCase();
+    // Set nilai input berdasarkan orders yang ada
+    updateProductInputs();
+}
+
+// Fungsi untuk memfilter produk berdasarkan pencarian dan view saat ini
+function filterProducts() {
+    const searchInput = document.getElementById('search');
+    const searchTerm = searchInput.value.toLowerCase();
     const productCards = document.querySelectorAll('.product-card');
     let visibleCount = 0;
-    const showFavorites = document.getElementById('show-favorites').classList.contains('active');
     const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
     
-    // Hanya update lastSearchTerm jika ada search term baru
+    // Update search state untuk view saat ini
+    searchStates[currentView].term = searchTerm;
     if (searchTerm !== '') {
-        lastSearchTerm = searchTerm;
+        searchStates[currentView].lastTerm = searchTerm;
     }
     
-    // Gunakan lastSearchTerm hanya jika sedang tidak di mode favorites
-    const searchFilter = (!showFavorites && searchTerm === '') ? lastSearchTerm : searchTerm;
+    // Tentukan term yang akan digunakan untuk filter
+    const filterTerm = searchTerm !== '' ? searchTerm : searchStates[currentView].lastTerm;
     
     productCards.forEach(card => {
         const productName = card.dataset.name;
         const productId = card.dataset.id;
         
-        const shouldShow = showFavorites ? 
-            favorites[productId] && productName.includes(searchFilter) :
-            productName.includes(searchFilter);
+        let shouldShow = true;
+        
+        // Filter berdasarkan view
+        if (currentView === 'favorites') {
+            shouldShow = favorites[productId];
+        }
+        
+        // Filter berdasarkan pencarian
+        if (filterTerm !== '') {
+            shouldShow = shouldShow && productName.includes(filterTerm);
+        }
         
         if (shouldShow) {
             card.style.display = 'flex';
@@ -4734,77 +4750,31 @@
     const clearBtn = document.getElementById('clear-search');
     clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
 }
-// Simpan search term saat berpindah view
-function saveSearchState() {
-    const searchTerm = document.getElementById('search').value.toLowerCase();
-    if (searchTerm !== '') {
-        lastSearchTerm = searchTerm;
+
+// Fungsi untuk memperbarui input produk berdasarkan pesanan
+function updateProductInputs() {
+    for (const productId in orders) {
+        const input = document.querySelector(`.quantity-input[data-id="${productId}"]`);
+        if (input) {
+            input.value = orders[productId];
+        }
     }
 }
 
-// Panggil saveSearchState sebelum berpindah view
-document.getElementById('show-orders').addEventListener('click', () => {
-    saveSearchState();
-    toggleView('orders');
-});
+// Fungsi untuk menghitung jumlah item yang dipesan
+function calculateOrderedItems() {
+    let count = 0;
+    for (const productId in orders) {
+        if (orders[productId] > 0) {
+            count++;
+        }
+    }
+    return count;
+}
 
-document.getElementById('show-favorites').addEventListener('click', () => {
-    saveSearchState();
-    const btn = document.getElementById('show-favorites');
-    btn.classList.toggle('active');
-    toggleView(btn.classList.contains('active') ? 'favorites' : 'products');
-});
-    
-    // Fungsi untuk memfilter favorit
-    function filterFavorites() {
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
-        const productCards = document.querySelectorAll('.product-card');
-        let visibleCount = 0;
-        const searchTerm = document.getElementById('search').value.toLowerCase();
-        
-        productCards.forEach(card => {
-            const productId = card.dataset.id;
-            const productName = card.dataset.name;
-            
-            const isFavorite = favorites[productId];
-            const matchesSearch = productName.includes(searchTerm);
-            
-            if (isFavorite && (searchTerm === '' || matchesSearch)) {
-                card.style.display = 'flex';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-        
-        const noResults = document.getElementById('no-results');
-        noResults.classList.toggle('show', visibleCount === 0);
-    }
-    
-    // Fungsi untuk memperbarui input produk berdasarkan pesanan
-    function updateProductInputs() {
-        for (const productId in orders) {
-            const input = document.querySelector(`.quantity-input[data-id="${productId}"]`);
-            if (input) {
-                input.value = orders[productId];
-            }
-        }
-    }
-    
-    // Fungsi untuk menghitung jumlah item yang dipesan
-    function calculateOrderedItems() {
-        let count = 0;
-        for (const productId in orders) {
-            if (orders[productId] > 0) {
-                count++;
-            }
-        }
-        return count;
-    }
-    
-    // Fungsi untuk menghasilkan teks pesanan
-    function generateOrderText() {
-    let message = "Order barang :\n\n"; // huruf kecil
+// Fungsi untuk menghasilkan teks pesanan
+function generateOrderText() {
+    let message = "Order barang :\n\n";
     const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
 
     const sortedProductIds = Object.keys(orders).sort((a, b) => {
@@ -4821,7 +4791,6 @@ document.getElementById('show-favorites').addEventListener('click', () => {
             const product = products.find(p => p.id == productId);
             const unit = units[productId] || 'pcs';
 
-            // Format baru dengan spasi setelah nomor dan sesuai permintaan
             if (unit === 'pcs') {
                 message += `${itemNumber}. ${product.name} (${quantity}) =\n\n`;
             } else {
@@ -4834,176 +4803,187 @@ document.getElementById('show-favorites').addEventListener('click', () => {
     return message;
 }
 
+// Fungsi untuk memperbarui ringkasan pesanan
+function updateOrderSummary() {
+    const orderItemsContainer = document.getElementById('order-items');
+    const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
     
-    // Fungsi untuk memperbarui ringkasan pesanan
-    function updateOrderSummary() {
-        const orderItemsContainer = document.getElementById('order-items');
-        const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+    totalItems = calculateOrderedItems();
+    orderItemsContainer.innerHTML = '';
+    
+    if (totalItems === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-order';
+        emptyMessage.textContent = 'sing misi ape';
+        orderItemsContainer.appendChild(emptyMessage);
+    } else {
+        let itemNumber = 1;
         
-        totalItems = calculateOrderedItems();
-        orderItemsContainer.innerHTML = '';
+        const sortedProductIds = Object.keys(orders).sort((a, b) => {
+            const productA = products.find(p => p.id == a);
+            const productB = products.find(p => p.id == b);
+            return productA.name.localeCompare(productB.name);
+        });
         
-        if (totalItems === 0) {
-            const emptyMessage = document.createElement('div');
-            emptyMessage.className = 'empty-order';
-            emptyMessage.textContent = 'sing misi ape';
-            orderItemsContainer.appendChild(emptyMessage);
-        } else {
-            let itemNumber = 1;
-            
-            const sortedProductIds = Object.keys(orders).sort((a, b) => {
-                const productA = products.find(p => p.id == a);
-                const productB = products.find(p => p.id == b);
-                return productA.name.localeCompare(productB.name);
-            });
-            
-            sortedProductIds.forEach(productId => {
-                const quantity = orders[productId];
-                if (quantity > 0) {
-                    const product = products.find(p => p.id == productId);
-                    const unit = units[productId] || 'pcs';
-                    
-                    const orderItem = document.createElement('div');
-                    orderItem.className = 'order-item';
-                    orderItem.innerHTML = `
-                 <div class="order-item-name">
-                    <span class="item-number">${itemNumber}.</span>
-                    <div class="product-name-wrapper">
-                        ${product.name}
-                    </div>
-                    <span class="unit-display">${unit}</span>
-                </div>
-                        <div class="order-item-control">
-                            <button class="quantity-btn minus" data-id="${productId}"><i class="fas fa-minus"></i></button>
-                            <input type="number" class="order-quantity-input" data-id="${productId}" value="${quantity}" min="0">
-                            <button class="quantity-btn plus" data-id="${productId}"><i class="fas fa-plus"></i></button>
+        sortedProductIds.forEach(productId => {
+            const quantity = orders[productId];
+            if (quantity > 0) {
+                const product = products.find(p => p.id == productId);
+                const unit = units[productId] || 'pcs';
+                
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                orderItem.innerHTML = `
+                    <div class="order-item-name">
+                        <span class="item-number">${itemNumber}.</span>
+                        <div class="product-name-wrapper">
+                            ${product.name}
                         </div>
-                    `;
-                    orderItemsContainer.appendChild(orderItem);
-                    itemNumber++;
-                }
-            });
-        }
-        
-        document.getElementById('item-count').textContent = totalItems;
-        document.getElementById('order-item-count').textContent = totalItems;
-    
-        const summaryInputs = document.querySelectorAll('#order-items .order-quantity-input');
-        summaryInputs.forEach(input => {
-            input.addEventListener('change', function() {
-                const productId = this.dataset.id;
-                let value = parseInt(this.value) || 0;
-                this.value = Math.max(0, value);
-                orders[productId] = parseInt(this.value);
-                
-                if (orders[productId] === 0) {
-                    delete orders[productId];
-                }
-                
-                updateProductInputs();
-                updateOrderSummary();
-            });
+                        <span class="unit-display">${unit}</span>
+                    </div>
+                    <div class="order-item-control">
+                        <button class="quantity-btn minus" data-id="${productId}"><i class="fas fa-minus"></i></button>
+                        <input type="number" class="order-quantity-input" data-id="${productId}" value="${quantity}" min="0">
+                        <button class="quantity-btn plus" data-id="${productId}"><i class="fas fa-plus"></i></button>
+                    </div>
+                `;
+                orderItemsContainer.appendChild(orderItem);
+                itemNumber++;
+            }
         });
     }
     
-    // Fungsi untuk menangani perubahan kuantitas
-    function handleQuantityChange(productId, newValue) {
-        newValue = Math.max(0, newValue);
-        
-        if (newValue > 0) {
-            orders[productId] = newValue;
-        } else {
-            delete orders[productId];
-        }
-        
-        const productInput = document.querySelector(`.quantity-input[data-id="${productId}"]`);
-        if (productInput) {
-            productInput.value = newValue;
-        }
-        
-        updateOrderSummary();
-    }
-    
-    // Fungsi untuk mengirim pesanan ke WhatsApp
-    function sendOrderToWhatsApp() {
-        if (totalItems === 0) {
-            showToast('List pesanan nu puyung');
-            return;
-        }
-        
-        const message = generateOrderText();
-        const phoneNumber = '6285955202282';
-        const encodedMessage = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-        window.open(whatsappUrl, '_blank');
-    }
-    
-    // Fungsi untuk menyalin pesanan ke clipboard
-    function copyOrderToClipboard() {
-        if (totalItems === 0) {
-            showToast('List pesanan nu puyung');
-            return;
-        }
-        
-        const message = generateOrderText();
-        navigator.clipboard.writeText(message).then(() => {
-            showToast('List pesanan berhasil disalin!');
-        }).catch(err => {
-            console.error('Gagal menyalin: ', err);
-            showToast('Gagal menyalin list pesanan');
-        });
-    }
-    
-    // Fungsi untuk menampilkan toast notification
-    function showToast(message) {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.classList.add('show');
-        
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
-    }
-    
-    // Fungsi untuk reset semua pesanan
-    function resetAllOrders() {
-        if (totalItems === 0) {
-            showToast('List pesanan nu puyung');
-            return;
-        }
-        
-        document.getElementById('confirmModal').style.display = 'flex';
-    }
-    
-    // Fungsi untuk melakukan reset setelah dikonfirmasi
-    function performReset() {
-            orders = {};
-            lastSearchTerm = ''; // Reset pencarian terakhir
-            document.querySelectorAll('.quantity-input').forEach(input => {
-                input.value = 0;
-            });
+    document.getElementById('item-count').textContent = totalItems;
+    document.getElementById('order-item-count').textContent = totalItems;
+
+    const summaryInputs = document.querySelectorAll('#order-items .order-quantity-input');
+    summaryInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const productId = this.dataset.id;
+            let value = parseInt(this.value) || 0;
+            this.value = Math.max(0, value);
+            orders[productId] = parseInt(this.value);
+            
+            if (orders[productId] === 0) {
+                delete orders[productId];
+            }
+            
+            updateProductInputs();
             updateOrderSummary();
-            document.getElementById('confirmModal').style.display = 'none';
-            filterProducts(); // Refresh tampilan produk
-        }
+        });
+    });
+}
+
+// Fungsi untuk menangani perubahan kuantitas
+function handleQuantityChange(productId, newValue) {
+    newValue = Math.max(0, newValue);
     
-    // Fungsi untuk toggle tampilan
-    function toggleView(view) {
+    if (newValue > 0) {
+        orders[productId] = newValue;
+    } else {
+        delete orders[productId];
+    }
+    
+    const productInput = document.querySelector(`.quantity-input[data-id="${productId}"]`);
+    if (productInput) {
+        productInput.value = newValue;
+    }
+    
+    updateOrderSummary();
+}
+
+// Fungsi untuk mengirim pesanan ke WhatsApp
+function sendOrderToWhatsApp() {
+    if (totalItems === 0) {
+        showToast('List pesanan nu puyung');
+        return;
+    }
+    
+    const message = generateOrderText();
+    const phoneNumber = '6285955202282';
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+// Fungsi untuk menyalin pesanan ke clipboard
+function copyOrderToClipboard() {
+    if (totalItems === 0) {
+        showToast('List pesanan nu puyung');
+        return;
+    }
+    
+    const message = generateOrderText();
+    navigator.clipboard.writeText(message).then(() => {
+        showToast('List pesanan berhasil disalin!');
+    }).catch(err => {
+        console.error('Gagal menyalin: ', err);
+        showToast('Gagal menyalin list pesanan');
+    });
+}
+
+// Fungsi untuk menampilkan toast notification
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// Fungsi untuk reset semua pesanan
+function resetAllOrders() {
+    if (totalItems === 0) {
+        showToast('List pesanan nu puyung');
+        return;
+    }
+    
+    document.getElementById('confirmModal').style.display = 'flex';
+}
+
+// Fungsi untuk melakukan reset setelah dikonfirmasi
+function performReset() {
+    orders = {};
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.value = 0;
+    });
+    updateOrderSummary();
+    document.getElementById('confirmModal').style.display = 'none';
+    
+    // Jika di view favorites, refresh filter
+    if (currentView === 'favorites') {
+        filterProducts();
+    }
+}
+
+// Fungsi untuk toggle tampilan
+function toggleView(view) {
     const productsView = document.getElementById('products-view');
     const orderSummary = document.getElementById('order-summary');
     const showProductsBtn = document.getElementById('show-products');
     const showOrdersBtn = document.getElementById('show-orders');
     const showFavoritesBtn = document.getElementById('show-favorites');
+    const searchInput = document.getElementById('search');
     
     showProductsBtn.classList.remove('active');
     showOrdersBtn.classList.remove('active');
     showFavoritesBtn.classList.remove('active');
     
+    // Simpan state pencarian sebelum berpindah view
+    if (currentView !== view && view !== 'orders') {
+        // Restore search state untuk view yang akan ditampilkan
+        searchInput.value = searchStates[view].term;
+    }
+    
+    currentView = view;
+    
     if (view === 'products') {
         productsView.style.display = 'block';
         orderSummary.style.display = 'none';
         showProductsBtn.classList.add('active');
-        filterProducts(); // Tetap mempertahankan lastSearchTerm
+        filterProducts();
     } else if (view === 'orders') {
         productsView.style.display = 'none';
         orderSummary.style.display = 'block';
@@ -5013,414 +4993,414 @@ document.getElementById('show-favorites').addEventListener('click', () => {
         productsView.style.display = 'block';
         orderSummary.style.display = 'none';
         showFavoritesBtn.classList.add('active');
-        filterFavorites();
+        filterProducts();
     }
 }
+
+// Fungsi untuk toggle favorit
+function toggleFavorite(productId) {
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+    favorites[productId] = !favorites[productId];
+    localStorage.setItem('favorites', JSON.stringify(favorites));
     
-    // Fungsi untuk toggle favorit
-    function toggleFavorite(productId) {
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
-        favorites[productId] = !favorites[productId];
-        localStorage.setItem('favorites', JSON.stringify(favorites));
-        
-        const favoriteBtn = document.querySelector(`.favorite-btn[data-id="${productId}"]`);
-        if (favoriteBtn) {
-            favoriteBtn.classList.toggle('active', favorites[productId]);
-            favoriteBtn.querySelector('i').className = favorites[productId] ? 'fas fa-bookmark' : 'far fa-bookmark';
-        }
-        
-        if (document.getElementById('show-favorites').classList.contains('active')) {
-            filterFavorites();
-        }
+    const favoriteBtn = document.querySelector(`.favorite-btn[data-id="${productId}"]`);
+    if (favoriteBtn) {
+        favoriteBtn.classList.toggle('active', favorites[productId]);
+        favoriteBtn.querySelector('i').className = favorites[productId] ? 'fas fa-bookmark' : 'far fa-bookmark';
     }
     
-    // Fungsi untuk toggle dark mode
-    function toggleDarkMode() {
-        const body = document.body;
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        
-        body.classList.toggle('dark-mode');
-        const isDarkMode = body.classList.contains('dark-mode');
-        
-        if (isDarkMode) {
-            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-            localStorage.setItem('darkMode', 'true');
-        } else {
-            darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-            localStorage.setItem('darkMode', 'false');
-        }
-        
-        // Tampilkan overlay animasi
-        const darkModeOverlay = document.querySelector('.dark-mode-overlay');
-        darkModeOverlay.style.display = 'block';
-        setTimeout(() => {
-            darkModeOverlay.style.display = 'none';
-        }, 1000);
+    // Jika di view favorites, refresh filter
+    if (currentView === 'favorites') {
+        filterProducts();
+    }
+}
+
+// Fungsi untuk toggle dark mode
+function toggleDarkMode() {
+    const body = document.body;
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    
+    body.classList.toggle('dark-mode');
+    const isDarkMode = body.classList.contains('dark-mode');
+    
+    if (isDarkMode) {
+        darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        localStorage.setItem('darkMode', 'true');
+    } else {
+        darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        localStorage.setItem('darkMode', 'false');
     }
     
-    // Fungsi untuk menampilkan suggestion
-    function showSuggestions(searchTerm) {
-        const suggestionsContainer = document.getElementById('search-suggestions');
-        suggestionsContainer.innerHTML = '';
+    // Tampilkan overlay animasi
+    const darkModeOverlay = document.querySelector('.dark-mode-overlay');
+    darkModeOverlay.style.display = 'block';
+    setTimeout(() => {
+        darkModeOverlay.style.display = 'none';
+    }, 1000);
+}
+
+// Fungsi untuk menampilkan suggestion
+function showSuggestions(searchTerm) {
+    const suggestionsContainer = document.getElementById('search-suggestions');
+    suggestionsContainer.innerHTML = '';
+    
+    if (searchTerm.length < 1) {
+        suggestionsContainer.style.display = 'none';
+        return;
+    }
+    
+    const term = searchTerm.toLowerCase();
+    const matchedProducts = products.filter(product => 
+        product.name.toLowerCase().includes(term)
+    ).slice(0, 5);
+    
+    if (matchedProducts.length === 0) {
+        suggestionsContainer.style.display = 'none';
+        return;
+    }
+    
+    matchedProducts.forEach(product => {
+        const suggestionItem = document.createElement('div');
+        suggestionItem.className = 'suggestion-item';
+        suggestionItem.textContent = product.name;
+        suggestionItem.dataset.id = product.id;
         
-        if (searchTerm.length < 1) {
-            suggestionsContainer.style.display = 'none';
-            return;
+        const startIdx = product.name.toLowerCase().indexOf(term);
+        if (startIdx >= 0) {
+            const endIdx = startIdx + term.length;
+            const before = product.name.substring(0, startIdx);
+            const match = product.name.substring(startIdx, endIdx);
+            const after = product.name.substring(endIdx);
+            
+            suggestionItem.innerHTML = `${before}<span class="suggestion-highlight">${match}</span>${after}`;
         }
         
-        const term = searchTerm.toLowerCase();
-        const matchedProducts = products.filter(product => 
-            product.name.toLowerCase().includes(term)
-        ).slice(0, );
-        
-        if (matchedProducts.length === 0) {
+        suggestionItem.addEventListener('click', () => {
+            document.getElementById('search').value = product.name;
             suggestionsContainer.style.display = 'none';
-            return;
-        }
-        
-        matchedProducts.forEach(product => {
-            const suggestionItem = document.createElement('div');
-            suggestionItem.className = 'suggestion-item';
-            suggestionItem.textContent = product.name;
-            suggestionItem.dataset.id = product.id;
-            
-            const startIdx = product.name.toLowerCase().indexOf(term);
-            if (startIdx >= 0) {
-                const endIdx = startIdx + term.length;
-                const before = product.name.substring(0, startIdx);
-                const match = product.name.substring(startIdx, endIdx);
-                const after = product.name.substring(endIdx);
-                
-                suggestionItem.innerHTML = `${before}<span class="suggestion-highlight">${match}</span>${after}`;
-            }
-            
-            suggestionItem.addEventListener('click', () => {
-                document.getElementById('search').value = product.name;
-                suggestionsContainer.style.display = 'none';
-                filterProducts();
-                document.getElementById('search').focus();
-            });
-            
-            suggestionsContainer.appendChild(suggestionItem);
+            filterProducts();
+            document.getElementById('search').focus();
         });
         
-        suggestionsContainer.style.display = 'block';
-    }
+        suggestionsContainer.appendChild(suggestionItem);
+    });
     
-    // Fungsi untuk menyembunyikan suggestion
-    function hideSuggestions() {
-        const suggestionsContainer = document.getElementById('search-suggestions');
-        suggestionsContainer.style.display = 'none';
-    }
+    suggestionsContainer.style.display = 'block';
+}
+
+// Fungsi untuk menyembunyikan suggestion
+function hideSuggestions() {
+    const suggestionsContainer = document.getElementById('search-suggestions');
+    suggestionsContainer.style.display = 'none';
+}
+
+// Fungsi untuk menangani keyboard navigation
+function handleSearchKeyDown(e) {
+    const suggestions = document.querySelectorAll('.suggestion-item');
+    if (!suggestions.length) return;
     
-    // Fungsi untuk menangani keyboard navigation
-    function handleSearchKeyDown(e) {
-        const suggestions = document.querySelectorAll('.suggestion-item');
-        if (!suggestions.length) return;
-        
-        const activeSuggestion = document.querySelector('.suggestion-item.active');
-        let index = Array.from(suggestions).indexOf(activeSuggestion);
-        
-        switch(e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                if (index < suggestions.length - 1) {
-                    index++;
-                } else {
-                    index = 0;
-                }
-                break;
-            case 'ArrowUp':
-                e.preventDefault();
-                if (index > 0) {
-                    index--;
-                } else {
-                    index = suggestions.length - 1;
-                }
-                break;
-            case 'Enter':
-                if (activeSuggestion) {
-                    e.preventDefault();
-                    document.getElementById('search').value = activeSuggestion.textContent;
-                    hideSuggestions();
-                    filterProducts();
-                }
-                return;
-            case 'Escape':
-                hideSuggestions();
-                return;
-            default:
-                return;
-        }
-        
-        suggestions.forEach(s => s.classList.remove('active'));
-        suggestions[index].classList.add('active');
-    }
+    const activeSuggestion = document.querySelector('.suggestion-item.active');
+    let index = Array.from(suggestions).indexOf(activeSuggestion);
     
-    // Fungsi untuk mencetak PDF
-    function printOrderToPDF() {
-        if (totalItems === 0) {
-            showToast('List pesanan nu puyung');
-            return;
-        }
-    
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        const today = new Date();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15;
-    
-        // Format Tanggal dan Jam
-        const hari = hariIndonesia[today.getDay()];
-        const tanggal = today.toLocaleDateString('id-ID');
-        const jam = today.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    
-        // Background
-        doc.setFillColor(245, 248, 250);
-        doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), 'F');
-    
-        // Judul
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 70, 120);
-        doc.text('ELECTRA KAPAL ORDER LIST', pageWidth / 2, 20, { align: 'center' });
-    
-        // Garis bawah judul
-        doc.setDrawColor(50, 100, 150);
-        doc.setLineWidth(0.5);
-        doc.line(margin, 25, pageWidth - margin, 25);
-    
-        // Informasi tanggal dan jam
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`${tanggal}, ${hari}, ${jam}`, margin, 35);
-    
-        // Tabel pesanan
-        const headers = [['No', 'Nama Barang', 'Jumlah']];
-        const data = [];
-        let no = 1;
-        let totalBarang = 0;
-    
-        for (const id in orders) {
-            if (orders[id] > 0) {
-                const product = products.find(p => p.id == id);
-                data.push([no++, product.name, orders[id]]);
-                totalBarang += orders[id];
+    switch(e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            if (index < suggestions.length - 1) {
+                index++;
+            } else {
+                index = 0;
             }
-        }
+            break;
+        case 'ArrowUp':
+            e.preventDefault();
+            if (index > 0) {
+                index--;
+            } else {
+                index = suggestions.length - 1;
+            }
+            break;
+        case 'Enter':
+            if (activeSuggestion) {
+                e.preventDefault();
+                document.getElementById('search').value = activeSuggestion.textContent;
+                hideSuggestions();
+                filterProducts();
+            }
+            return;
+        case 'Escape':
+            hideSuggestions();
+            return;
+        default:
+            return;
+    }
     
-        doc.autoTable({
-            startY: 45,
-            head: headers,
-            body: data,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [30, 70, 120],
-                textColor: 255,
-                fontStyle: 'bold',
+    suggestions.forEach(s => s.classList.remove('active'));
+    suggestions[index].classList.add('active');
+}
+
+// Fungsi untuk mencetak PDF
+function printOrderToPDF() {
+    if (totalItems === 0) {
+        showToast('List pesanan nu puyung');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const today = new Date();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+
+    // Format Tanggal dan Jam
+    const hari = hariIndonesia[today.getDay()];
+    const tanggal = today.toLocaleDateString('id-ID');
+    const jam = today.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    // Background
+    doc.setFillColor(245, 248, 250);
+    doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), 'F');
+
+    // Judul
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 70, 120);
+    doc.text('ELECTRA KAPAL ORDER LIST', pageWidth / 2, 20, { align: 'center' });
+
+    // Garis bawah judul
+    doc.setDrawColor(50, 100, 150);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 25, pageWidth - margin, 25);
+
+    // Informasi tanggal dan jam
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`${tanggal}, ${hari}, ${jam}`, margin, 35);
+
+    // Tabel pesanan
+    const headers = [['No', 'Nama Barang', 'Jumlah']];
+    const data = [];
+    let no = 1;
+    let totalBarang = 0;
+
+    for (const id in orders) {
+        if (orders[id] > 0) {
+            const product = products.find(p => p.id == id);
+            data.push([no++, product.name, orders[id]]);
+            totalBarang += orders[id];
+        }
+    }
+
+    doc.autoTable({
+        startY: 45,
+        head: headers,
+        body: data,
+        theme: 'striped',
+        headStyles: {
+            fillColor: [30, 70, 120],
+            textColor: 255,
+            fontStyle: 'bold',
+            halign: 'center',
+            lineWidth: 0.3
+        },
+        bodyStyles: {
+            textColor: [50, 50, 50],
+            lineWidth: 0.1,
+            cellPadding: 4
+        },
+        alternateRowStyles: {
+            fillColor: [245, 248, 250]
+        },
+        styles: {
+            fontSize: 10,
+            cellPadding: 4,
+            valign: 'middle',
+            lineColor: [200, 200, 200],
+            lineWidth: 0.2,
+            font: 'helvetica'
+        },
+        columnStyles: {
+            0: { 
+                cellWidth: 15, 
                 halign: 'center',
-                lineWidth: 0.3
-            },
-            bodyStyles: {
-                textColor: [50, 50, 50],
-                lineWidth: 0.1,
-                cellPadding: 4
-            },
-            alternateRowStyles: {
                 fillColor: [245, 248, 250]
             },
-            styles: {
-                fontSize: 10,
-                cellPadding: 4,
-                valign: 'middle',
-                lineColor: [200, 200, 200],
-                lineWidth: 0.2,
-                font: 'helvetica'
+            1: { 
+                cellWidth: 'auto',
+                fontStyle: 'bold'
             },
-            columnStyles: {
-                0: { 
-                    cellWidth: 15, 
-                    halign: 'center',
-                    fillColor: [245, 248, 250]
-                },
-                1: { 
-                    cellWidth: 'auto',
-                    fontStyle: 'bold'
-                },
-                2: { 
-                    cellWidth: 25, 
-                    halign: 'center',
-                    fillColor: [245, 248, 250]
-                }
-            },
-            margin: { left: margin, right: margin }
-        });
+            2: { 
+                cellWidth: 25, 
+                halign: 'center',
+                fillColor: [245, 248, 250]
+            }
+        },
+        margin: { left: margin, right: margin }
+    });
+
+    // Total Barang
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 70, 120);
+    doc.text(`Total Barang: ${totalBarang}`, pageWidth - margin, finalY, { align: 'right' });
+
+    // Garis penutup
+    doc.setDrawColor(30, 70, 120);
+    doc.setLineWidth(0.3);
+    doc.line(margin, finalY + 5, pageWidth - margin, finalY + 5);
+
+    // Simpan PDF
+    const timestamp = today.toISOString().slice(0, 10).replace(/-/g, '');
+    doc.save(`Pesanan_Electra_Kapal_${timestamp}.pdf`);
+}
+
+// Event listeners saat DOM siap
+document.addEventListener('DOMContentLoaded', () => {
+    loadProducts();
     
-        // Total Barang
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 70, 120);
-        doc.text(`Total Barang: ${totalBarang}`, pageWidth - margin, finalY, { align: 'right' });
-    
-        // Garis penutup
-        doc.setDrawColor(30, 70, 120);
-        doc.setLineWidth(0.3);
-        doc.line(margin, finalY + 5, pageWidth - margin, finalY + 5);
-    
-        // Simpan PDF
-        const timestamp = today.toISOString().slice(0, 10).replace(/-/g, '');
-        doc.save(`Pesanan_Electra_Kapal_${timestamp}.pdf`);
+    // Cek preferensi dark mode
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeToggle').innerHTML = '<i class="fas fa-sun"></i>';
     }
     
-    // Event listeners saat DOM siap
-    document.addEventListener('DOMContentLoaded', () => {
-        loadProducts();
-        
-        // Cek preferensi dark mode
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('darkModeToggle').innerHTML = '<i class="fas fa-sun"></i>';
-        }
-        
-        // Pencarian produk
-        const searchInput = document.getElementById('search');
-        searchInput.addEventListener('input', debounce(function(e) {
-            filterProducts();
-            showSuggestions(e.target.value);
-        }, 800));
-        
-        searchInput.addEventListener('keydown', handleSearchKeyDown);
-        
-        // Sembunyikan suggestion saat klik di luar
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.search-wrapper')) {
-                hideSuggestions();
-            }
-        });
-        
-        // Tombol clear search
-        document.getElementById('clear-search').addEventListener('click', function() {
-            searchInput.value = '';
-            filterProducts(); // Tetap akan menggunakan lastSearchTerm
+    // Pencarian produk
+    const searchInput = document.getElementById('search');
+    searchInput.addEventListener('input', debounce(function(e) {
+        filterProducts();
+        showSuggestions(e.target.value);
+    }, 500));
+    
+    searchInput.addEventListener('keydown', handleSearchKeyDown);
+    
+    // Sembunyikan suggestion saat klik di luar
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-wrapper')) {
             hideSuggestions();
-            searchInput.focus();
-        });
-        
-        // Delegasi event untuk semua interaksi
-        document.addEventListener('click', (e) => {
-            // Tombol favorit
-            if (e.target.closest('.favorite-btn')) {
-                const btn = e.target.closest('.favorite-btn');
-                toggleFavorite(btn.dataset.id);
-                return;
-            }
-            
-            // Tombol plus/minus
-            const plusBtn = e.target.closest('.plus');
-            const minusBtn = e.target.closest('.minus');
-            
-            if (plusBtn || minusBtn) {
-                const button = plusBtn || minusBtn;
-                const productId = button.dataset.id;
-                const input = button.parentElement.querySelector('input');
-                let value = parseInt(input.value) || 0;
-                
-                if (plusBtn) {
-                    value++;
-                } else {
-                    value = Math.max(0, value - 1);
-                }
-                
-                input.value = value;
-                handleQuantityChange(productId, value);
-            }
-        });
-        
-        // Perubahan input manual
-        document.addEventListener('change', (e) => {
-            // Input kuantitas
-            if (e.target.classList.contains('quantity-input') || 
-                e.target.classList.contains('order-quantity-input')) {
-                
-                const productId = e.target.dataset.id;
-                const newValue = parseInt(e.target.value) || 0;
-                
-                e.target.value = Math.max(0, newValue);
-                handleQuantityChange(productId, e.target.value);
-            }
-            
-            // Selector satuan
-            if (e.target.classList.contains('unit-selector')) {
-                const productId = e.target.dataset.id;
-                const unit = e.target.value;
-                
-                const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
-                units[productId] = unit;
-                localStorage.setItem('productUnits', JSON.stringify(units));
-                
-                if (orders[productId]) {
-                    updateOrderSummary();
-                }
-            }
-        });
-        
-        // Kirim ke WhatsApp
-        document.getElementById('send-order').addEventListener('click', sendOrderToWhatsApp);
-        
-        // Reset pesanan
-        document.getElementById('reset-order').addEventListener('click', resetAllOrders);
-        
-        // Konfirmasi reset
-        document.getElementById('confirmReset').addEventListener('click', performReset);
-        document.getElementById('cancelReset').addEventListener('click', function() {
-            document.getElementById('confirmModal').style.display = 'none';
-        });
-        
-        // Toggle tampilan
-        document.getElementById('show-products').addEventListener('click', () => toggleView('products'));
-        document.getElementById('show-orders').addEventListener('click', () => toggleView('orders'));
-        document.getElementById('show-favorites').addEventListener('click', () => {
-            const btn = document.getElementById('show-favorites');
-            btn.classList.toggle('active');
-            toggleView(btn.classList.contains('active') ? 'favorites' : 'products');
-        });
-        
-        // Dark mode toggle
-        document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
-        
-        // Salin list pesanan
-        document.getElementById('copy-order-btn').addEventListener('click', copyOrderToClipboard);
-        
-        // Cetak PDF
-        document.getElementById('print-order').addEventListener('click', printOrderToPDF);
-        
-        // Tutup modal saat klik di luar konten modal
-        document.addEventListener('click', (e) => {
-            const modal = document.getElementById('confirmModal');
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-        
-        // Animasi dark mode overlay
-        const darkModeOverlay = document.createElement('div');
-        darkModeOverlay.className = 'dark-mode-overlay';
-        document.body.appendChild(darkModeOverlay);
-        
-        setTimeout(() => {
-            darkModeOverlay.style.display = 'none';
-        }, 1000);
+        }
     });
     
-    // Peringatan sebelum meninggalkan halaman jika ada pesanan
-    window.addEventListener('beforeunload', function (e) {
-        if (calculateOrderedItems() > 0) {
-            e.preventDefault();
-            e.returnValue = '';
+    // Tombol clear search
+    document.getElementById('clear-search').addEventListener('click', function() {
+        searchInput.value = '';
+        searchStates[currentView].term = '';
+        filterProducts();
+        hideSuggestions();
+        searchInput.focus();
+    });
+    
+    // Delegasi event untuk semua interaksi
+    document.addEventListener('click', (e) => {
+        // Tombol favorit
+        if (e.target.closest('.favorite-btn')) {
+            const btn = e.target.closest('.favorite-btn');
+            toggleFavorite(btn.dataset.id);
+            return;
+        }
+        
+        // Tombol plus/minus
+        const plusBtn = e.target.closest('.plus');
+        const minusBtn = e.target.closest('.minus');
+        
+        if (plusBtn || minusBtn) {
+            const button = plusBtn || minusBtn;
+            const productId = button.dataset.id;
+            const input = button.parentElement.querySelector('input');
+            let value = parseInt(input.value) || 0;
+            
+            if (plusBtn) {
+                value++;
+            } else {
+                value = Math.max(0, value - 1);
+            }
+            
+            input.value = value;
+            handleQuantityChange(productId, value);
         }
     });
+    
+    // Perubahan input manual
+    document.addEventListener('change', (e) => {
+        // Input kuantitas
+        if (e.target.classList.contains('quantity-input') || 
+            e.target.classList.contains('order-quantity-input')) {
+            
+            const productId = e.target.dataset.id;
+            const newValue = parseInt(e.target.value) || 0;
+            
+            e.target.value = Math.max(0, newValue);
+            handleQuantityChange(productId, e.target.value);
+        }
+        
+        // Selector satuan
+        if (e.target.classList.contains('unit-selector')) {
+            const productId = e.target.dataset.id;
+            const unit = e.target.value;
+            
+            const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
+            units[productId] = unit;
+            localStorage.setItem('productUnits', JSON.stringify(units));
+            
+            if (orders[productId]) {
+                updateOrderSummary();
+            }
+        }
+    });
+    
+    // Kirim ke WhatsApp
+    document.getElementById('send-order').addEventListener('click', sendOrderToWhatsApp);
+    
+    // Reset pesanan
+    document.getElementById('reset-order').addEventListener('click', resetAllOrders);
+    
+    // Konfirmasi reset
+    document.getElementById('confirmReset').addEventListener('click', performReset);
+    document.getElementById('cancelReset').addEventListener('click', function() {
+        document.getElementById('confirmModal').style.display = 'none';
+    });
+    
+    // Toggle tampilan
+    document.getElementById('show-products').addEventListener('click', () => toggleView('products'));
+    document.getElementById('show-orders').addEventListener('click', () => toggleView('orders'));
+    document.getElementById('show-favorites').addEventListener('click', () => {
+        toggleView('favorites');
+    });
+    
+    // Dark mode toggle
+    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+    
+    // Salin list pesanan
+    document.getElementById('copy-order-btn').addEventListener('click', copyOrderToClipboard);
+    
+    // Cetak PDF
+    document.getElementById('print-order').addEventListener('click', printOrderToPDF);
+    
+    // Tutup modal saat klik di luar konten modal
+    document.addEventListener('click', (e) => {
+        const modal = document.getElementById('confirmModal');
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    // Animasi dark mode overlay
+    const darkModeOverlay = document.createElement('div');
+    darkModeOverlay.className = 'dark-mode-overlay';
+    document.body.appendChild(darkModeOverlay);
+    
+    setTimeout(() => {
+        darkModeOverlay.style.display = 'none';
+    }, 1000);
+});
+
+// Peringatan sebelum meninggalkan halaman jika ada pesanan
+window.addEventListener('beforeunload', function (e) {
+    if (calculateOrderedItems() > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
   </script>
 </body>
 </html>
