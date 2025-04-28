@@ -1099,8 +1099,9 @@
     <div class="toast" id="toast">List mesalain!</div>
     <script>
     // Daftar produk
-        const products = [
-    { id: 1, name: "Sirine Mini /Mini Siren" },
+ // Daftar produk
+const products = [
+{ id: 1, name: "Sirine Mini /Mini Siren" },
     { id: 2, name: "Conector HDMI M-F 90" },
     { id: 3, name: "Conector HDMI M-F 180" },
     { id: 4, name: "Conector HDMI F-F Sambungan" },
@@ -4685,12 +4686,9 @@
 { id: 3488, name: "Loewix IP Camera Indoor 4MP Colorvu LX-IPF10CE30 POE Onvif" },
 { id: 3489, name: "Loewix IP Camera Outdoor 4MP LX-IPF1830IP" }
 
+];
 
-    
-
-    ];
-    
-   // Variabel untuk menyimpan pesanan dan preferensi
+// Variabel untuk menyimpan pesanan dan preferensi
 let orders = {};
 let totalItems = 0;
 let currentView = 'products'; // Menyimpan view saat ini
@@ -4698,6 +4696,79 @@ let searchStates = { // Menyimpan state pencarian untuk setiap view
     products: { term: '', lastTerm: '' },
     favorites: { term: '', lastTerm: '' }
 };
+
+// Fungsi untuk menghitung similarity antara dua string (Levenshtein distance)
+function calculateSimilarity(str1, str2) {
+    const len1 = str1.length;
+    const len2 = str2.length;
+    
+    const matrix = [];
+    for (let i = 0; i <= len1; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= len2; j++) {
+        matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+            const cost = str1[i-1] === str2[j-1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i-1][j] + 1,    // deletion
+                matrix[i][j-1] + 1,    // insertion
+                matrix[i-1][j-1] + cost // substitution
+            );
+        }
+    }
+    
+    const distance = matrix[len1][len2];
+    const maxLength = Math.max(len1, len2);
+    return 1 - (distance / maxLength);
+}
+
+// Fungsi untuk melakukan fuzzy search
+function fuzzySearch(term, productName) {
+    const lowerTerm = term.toLowerCase();
+    const lowerName = productName.toLowerCase();
+    
+    // 1. Exact match (case insensitive)
+    if (lowerName.includes(lowerTerm)) {
+        return { score: 1, match: true };
+    }
+    
+    // 2. Partial match (all characters in order but not necessarily consecutive)
+    let termIndex = 0;
+    for (let i = 0; i < lowerName.length && termIndex < lowerTerm.length; i++) {
+        if (lowerName[i] === lowerTerm[termIndex]) {
+            termIndex++;
+        }
+    }
+    if (termIndex === lowerTerm.length) {
+        return { score: 0.8, match: true };
+    }
+    
+    // 3. Similarity match (Levenshtein distance)
+    const similarity = calculateSimilarity(lowerTerm, lowerName);
+    if (similarity >= 0.6) {
+        return { score: similarity, match: true };
+    }
+    
+    // 4. Acronym match (e.g., "cca" matches "Conector Cable Adapter")
+    const words = lowerName.split(/[\s\/\-]+/);
+    const acronym = words.map(word => word[0]).join('');
+    if (acronym.includes(lowerTerm)) {
+        return { score: 0.7, match: true };
+    }
+    
+    // 5. Word start match (e.g., "hd" matches "HDMI")
+    for (const word of words) {
+        if (word.startsWith(lowerTerm)) {
+            return { score: 0.6, match: true };
+        }
+    }
+    
+    return { score: 0, match: false };
+}
 
 // Fungsi debounce untuk menunda eksekusi
 function debounce(func, delay) {
@@ -4758,7 +4829,7 @@ function loadProducts() {
 }
 
 // Fungsi untuk memfilter produk berdasarkan pencarian dan view saat ini
-function filterProducts() {
+function filterProducts(forceShowAll = false) {
     const searchInput = document.getElementById('search');
     const searchTerm = searchInput.value.toLowerCase();
     const productCards = document.querySelectorAll('.product-card');
@@ -4785,9 +4856,15 @@ function filterProducts() {
             shouldShow = favorites[productId];
         }
         
-        // Filter berdasarkan pencarian
-        if (filterTerm !== '') {
-            shouldShow = shouldShow && productName.includes(filterTerm);
+        // Jika forceShowAll true, tampilkan semua produk (untuk kasus klik suggestion)
+        if (!forceShowAll && filterTerm !== '') {
+            const searchResult = fuzzySearch(filterTerm, productName);
+            shouldShow = shouldShow && searchResult.match;
+            
+            // Tambahkan data-score untuk sorting
+            if (searchResult.match) {
+                card.dataset.score = searchResult.score;
+            }
         }
         
         if (shouldShow) {
@@ -4797,6 +4874,20 @@ function filterProducts() {
             card.style.display = 'none';
         }
     });
+    
+    // Sort produk berdasarkan relevansi jika ada pencarian
+    if (!forceShowAll && filterTerm !== '') {
+        const container = document.getElementById('products-container');
+        const cards = Array.from(container.querySelectorAll('.product-card[style="flex"]'));
+        
+        cards.sort((a, b) => {
+            const scoreA = parseFloat(a.dataset.score) || 0;
+            const scoreB = parseFloat(b.dataset.score) || 0;
+            return scoreB - scoreA;
+        });
+        
+        cards.forEach(card => container.appendChild(card));
+    }
     
     const noResults = document.getElementById('no-results');
     noResults.classList.toggle('show', visibleCount === 0);
@@ -5104,9 +5195,18 @@ function showSuggestions(searchTerm) {
     }
     
     const term = searchTerm.toLowerCase();
-    const matchedProducts = products.filter(product => 
-        product.name.toLowerCase().includes(term)
-    ).slice(0, 5);
+    
+    // Buat array produk dengan skor relevansi
+    const matchedProducts = products.map(product => {
+        const searchResult = fuzzySearch(term, product.name);
+        return {
+            ...product,
+            score: searchResult.score
+        };
+    })
+    .filter(product => product.score > 0.5) // Hanya tampilkan yang relevan
+    .sort((a, b) => b.score - a.score) // Urutkan berdasarkan skor tertinggi
+    .slice(0, 5); // Batasi jumlah suggestion
     
     if (matchedProducts.length === 0) {
         suggestionsContainer.style.display = 'none';
@@ -5116,23 +5216,47 @@ function showSuggestions(searchTerm) {
     matchedProducts.forEach(product => {
         const suggestionItem = document.createElement('div');
         suggestionItem.className = 'suggestion-item';
-        suggestionItem.textContent = product.name;
         suggestionItem.dataset.id = product.id;
+        suggestionItem.dataset.name = product.name;
         
-        const startIdx = product.name.toLowerCase().indexOf(term);
-        if (startIdx >= 0) {
-            const endIdx = startIdx + term.length;
-            const before = product.name.substring(0, startIdx);
-            const match = product.name.substring(startIdx, endIdx);
-            const after = product.name.substring(endIdx);
-            
-            suggestionItem.innerHTML = `${before}<span class="suggestion-highlight">${match}</span>${after}`;
+        // Highlight bagian yang cocok
+        const lowerName = product.name.toLowerCase();
+        const lowerTerm = term.toLowerCase();
+        let highlightedName = product.name;
+        
+        // Cari semua kemungkinan match untuk di-highlight
+        for (let i = 0; i < term.length; i++) {
+            const subTerm = term.substring(0, i+1);
+            const startIdx = lowerName.indexOf(subTerm);
+            if (startIdx >= 0) {
+                const endIdx = startIdx + subTerm.length;
+                const before = product.name.substring(0, startIdx);
+                const match = product.name.substring(startIdx, endIdx);
+                const after = product.name.substring(endIdx);
+                highlightedName = `${before}<span class="suggestion-highlight">${match}</span>${after}`;
+            }
         }
+        
+        suggestionItem.innerHTML = `
+            <div class="suggestion-text">${highlightedName}</div>
+        `;
         
         suggestionItem.addEventListener('click', () => {
             document.getElementById('search').value = product.name;
             suggestionsContainer.style.display = 'none';
-            filterProducts();
+            
+            // Sembunyikan semua produk terlebih dahulu
+            const productCards = document.querySelectorAll('.product-card');
+            productCards.forEach(card => {
+                card.style.display = 'none';
+            });
+            
+            // Tampilkan hanya produk yang sesuai dengan yang diklik
+            const selectedCard = document.querySelector(`.product-card[data-id="${product.id}"]`);
+            if (selectedCard) {
+                selectedCard.style.display = 'flex';
+            }
+            
             document.getElementById('search').focus();
         });
         
@@ -5176,9 +5300,22 @@ function handleSearchKeyDown(e) {
         case 'Enter':
             if (activeSuggestion) {
                 e.preventDefault();
-                document.getElementById('search').value = activeSuggestion.textContent;
+                const productName = activeSuggestion.dataset.name;
+                document.getElementById('search').value = productName;
                 hideSuggestions();
-                filterProducts();
+                
+                // Sembunyikan semua produk terlebih dahulu
+                const productCards = document.querySelectorAll('.product-card');
+                productCards.forEach(card => {
+                    card.style.display = 'none';
+                });
+                
+                // Tampilkan hanya produk yang sesuai dengan yang dipilih
+                const productId = activeSuggestion.dataset.id;
+                const selectedCard = document.querySelector(`.product-card[data-id="${productId}"]`);
+                if (selectedCard) {
+                    selectedCard.style.display = 'flex';
+                }
             }
             return;
         case 'Escape':
@@ -5324,13 +5461,18 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('input', debounce(function(e) {
         filterProducts();
         showSuggestions(e.target.value);
-    }, 500));
+    }, 300));
     
     searchInput.addEventListener('keydown', handleSearchKeyDown);
+    searchInput.addEventListener('focus', function() {
+        if (this.value.length > 0) {
+            showSuggestions(this.value);
+        }
+    });
     
     // Sembunyikan suggestion saat klik di luar
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-wrapper')) {
+        if (!e.target.closest('.search-wrapper') && !e.target.closest('#search-suggestions')) {
             hideSuggestions();
         }
     });
@@ -5339,7 +5481,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clear-search').addEventListener('click', function() {
         searchInput.value = '';
         searchStates[currentView].term = '';
-        filterProducts();
+        searchStates[currentView].lastTerm = '';
+        filterProducts(true); // Tampilkan semua produk
         hideSuggestions();
         searchInput.focus();
     });
